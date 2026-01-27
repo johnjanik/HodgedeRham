@@ -2,6 +2,7 @@
 \usepackage{amsmath,amssymb}
 \usepackage{tikz}
 \usetikzlibrary{arrows.meta, positioning, calc, decorations.markings}
+\usepackage{comment} 
 \usepackage[margin=1in]{geometry}
 
 \title{Notes on the Hodge-deRham Complex}
@@ -12,12 +13,62 @@
 	
 \maketitle
 
+\begin{comment}
+\begin{center}
+\begin{tikzpicture}
+	\node[draw, circle,
+	label=above:Top Label,
+	label={[text=red]below left:Styled Label}] (n1) at (0,0) {Center};
+\end{tikzpicture}
+\end{center}
+
+\draw[red, thick] (node1) -- (node2);
+\draw[blue, very thick] (nodeA) -- (nodeB);
+
+\draw[line width=1.5pt, green!60!black] (A) -- (B);
+\draw[dashed, blue, ultra thick] (A) -- (B);
+
+\begin{tikzpicture}[
+	myline/.style={draw=red, very thick, dashed},
+	arrowline/.style={->, blue, thick}
+	]
+	\node (A) at (0,0) {A};
+	\node (B) at (2,1) {B};
+	
+	\draw[myline] (A) -- (B);
+	\draw[arrowline] (B) -- (1,0);
+\end{tikzpicture}
+
+
+
+\begin{tikzpicture}[node distance=2cm]
+	% Define nodes
+	\node (A) {Node A};
+	\node (B) [right=of A] {Node B};
+	\node (C) [below=of A] {Node C};
+		
+	% Line 1: Thick Red
+	\draw[red, very thick] (A) -- (B);
+		
+	% Line 2: Blue dashed, custom thickness
+	\draw[blue, dashed, line width=2pt] (A) -- (C);
+		
+	% Line 3: Thin, dark green with arrows
+	\draw[<->, green!50!black, thin] (B) -- (C);
+\end{tikzpicture}
+\end{comment}
+
+
+
+
 \begin{center}
 \begin{tikzpicture}[
     node distance=2.5cm and 3cm,
     every node/.style={font=\large},
     % Standard arrow
     arrow/.style={-{Stealth[length=2.5mm]}, thick},
+    %reddash/.style={draw=red, very thick, dashed},
+    myarrow/.style={->, blue, thick}
     % Musical isomorphism arrows (decorative)
     musical/.style={-{Stealth[length=2mm, width=2mm]}, thick, 
                     looseness=0.8},
@@ -28,23 +79,36 @@
 % === NODES ===
 
 % Zero at bottom center
-\node (zero) at (0,-3.5) {$0$};
+	\node [draw, circle,
+	label=above:,
+	label={[text=red]below right:Trivial Space}](zero) at (0,-3.5) {$0$};
 
 % Middle row: Ω⁰ and Ω³
-\node (omega0) at (-2, -1.5) {$\Omega^0$};
-\node (omega3) at (2, -1.5) {$\Omega^3$};
+	\node [draw, circle,
+	label=above:,
+	label={[text=red]below left:Scalar Fields on R3}](omega0) at (-2, -1.5) {$\Omega^0$};
+	\node [draw, circle,
+		label=above:,
+		label={[text=red]below right:Top-forms on R3}] (omega3) at (2, -1.5) {$\Omega^3$};
 
 % Top row: $\omega^{1}$ and $\omega^{2}$
-\node (omega1) at (-2, 1.5) {$\Omega^1$};
-\node (omega2) at (2, 1.5) {$\Omega^2$};
+	\node [draw, circle,
+	label=above:,
+	label={[text=red]below left:1-forms on R3}] (omega1) at (-2, 1.5) {$\Omega^1$};
+	\node [draw, circle,
+	label=above:,
+	label={[text=red]below right:2-forms on R3}](omega2) at (2, 1.5) {$\Omega^2$};
 
 % Gamma in upper left corner
-\node (Gamma) at (-5, 3) {$\Gamma$};
+	\node [draw, circle,
+	label=above:,
+	label={[text=red]below left:vector fields on R3}] (Gamma) at (-5, 3) {$\Gamma$};
 
 % === DE RHAM COMPLEX ARROWS (d) ===
 
 % 0 → Ω⁰
-\draw[arrow] (zero) -- node[midway, left] {$d$} (omega0);
+\draw[arrow] (zero) -- node[midway, below left] {$d$} (omega0);
+
 
 % Ω⁰ → $\omega^{1}$
 \draw[arrow] (omega0) -- node[midway, left] {$d$} (omega1);
@@ -59,13 +123,15 @@
 \draw[arrow] (omega2) -- node[midway, right] {$d$} (omega3);
 
 % Ω³ → 0
-\draw[arrow] (omega3) -- node[midway, right] {$d$} (zero);
+\draw[arrow] (omega3) -- node[midway, below right] {$d$} (zero);
 
 % === HODGE STAR ARROWS (★) ===
-
+%TTD: Add label "Hodge Isomorphisms" above blue line for Hodge Star
+arrowline/.style={->, blue, thick}
 % Ω⁰ ↔ Ω³ (horizontal, parallel)
-\draw[arrow, parallel shift=2pt] (omega0) -- node[midway, above] {$\star$} (omega3);
-\draw[arrow, parallel shift=-2pt] (omega3) -- node[midway, below] {$\star$} (omega0);
+	%\draw[blue, dashed, line width=2pt] (omega0) -- (omega3);
+	\draw[blue, dashed, line width=2pt]  (omega0) -- node[midway, above] {$\star$} (omega3);
+	\draw[blue, dashed, line width=2pt] (omega3) -- node[midway, below] {$\star$} (omega0);
 
 % $\omega^{1}$ ↔ $\omega^{2}$ - already have d/δ, so we can add curved ★ or skip
 % If you want ★ between $\omega^{1}$ and $\omega^{2}$, we need to distinguish from d/δ
@@ -87,6 +153,86 @@
 \end{center}
 
 \vspace{1cm}
+
+%Above version but without the labes: Under contruction
+\begin{center}
+	\begin{tikzpicture}[
+		node distance=2.5cm and 3cm,
+		every node/.style={font=\large},
+		% Standard arrow
+		arrow/.style={-{Stealth[length=2.5mm]}, thick},
+		% Musical isomorphism arrows (decorative)
+		musical/.style={-{Stealth[length=2mm, width=2mm]}, thick, 
+			looseness=0.8},
+		% Double parallel arrows style
+		parallel shift/.style={transform canvas={yshift=#1}}
+		]
+		
+		% === NODES ===
+		
+		% Zero at bottom center
+		\node (zero) at (0,-3.5) {$0$};
+		%\node[options, label={[label options]right=of zero}] (zero) at (0,-3.5) {$0$};
+		
+		
+		% Middle row: Ω⁰ and Ω³
+		\node (omega0) at (-2, -1.5) {$\Omega^0$};
+		\node (omega3) at (2, -1.5) {$\Omega^3$};
+		
+		% Top row: $\omega^{1}$ and $\omega^{2}$
+		\node (omega1) at (-2, 1.5) {$\Omega^1$};
+		\node (omega2) at (2, 1.5) {$\Omega^2$};
+		
+		% Gamma in upper left corner
+		\node (Gamma) at (-5, 3) {$\Gamma$};
+		
+		% === DE RHAM COMPLEX ARROWS (d) ===
+		
+		% 0 → Ω⁰
+		\draw[arrow] (zero) -- node[midway, below left] {$d$} (omega0);
+		
+		% Ω⁰ → $\omega^{1}$
+		\draw[arrow] (omega0) -- node[midway, left] {$d$} (omega1);
+		
+		% $\omega^{1}$ → $\omega^{2}$ (upper parallel arrow)
+		\draw[arrow, parallel shift=2pt] (omega1) -- node[midway, above] {$d$} (omega2);
+		
+		% $\omega^{2}$ → $\omega^{1}$ (lower parallel arrow, reversed for codifferential δ)
+		\draw[arrow, parallel shift=-2pt] (omega2) -- node[midway, below] {$\delta$} (omega1);
+		
+		% $\omega^{2}$ → Ω³
+		\draw[arrow] (omega2) -- node[midway, right] {$d$} (omega3);
+		
+		% Ω³ → 0
+		\draw[arrow] (omega3) -- node[midway, below right] {$d$} (zero);
+		
+		% === HODGE STAR ARROWS (★) ===
+		
+		% Ω⁰ ↔ Ω³ (horizontal, parallel)
+		\draw[arrow, parallel shift=2pt] (omega0) -- node[midway, above] {$\star$} (omega3);
+		\draw[arrow, parallel shift=-2pt] (omega3) -- node[midway, below] {$\star$} (omega0);
+		
+		% $\omega^{1}$ ↔ $\omega^{2}$ - already have d/δ, so we can add curved ★ or skip
+		% If you want ★ between $\omega^{1}$ and $\omega^{2}$, we need to distinguish from d/δ
+		% Option: use dashed or different style
+		\draw[arrow, dashed, bend left=40] (omega1) to node[midway, above] {$\star$} (omega2);
+		\draw[arrow, dashed, bend left=40] (omega2) to node[midway, below] {$\star$} (omega1);
+		
+		% === MUSICAL ISOMORPHISMS (♭ and ♯) ===
+		
+		% $\Gamma$ → $\omega^{1}$ (flat: ♭)
+		\draw[-{Stealth[length=2.5mm]}, thick, bend right=15] 
+		(Gamma) to node[midway, below left] {$\flat$} (omega1);
+		
+		% $\omega^{1}$ → $\Gamma$ (sharp: ♯)  
+		\draw[-{Stealth[length=2.5mm]}, thick, bend right=15] 
+		(omega1) to node[midway, above right] {$\sharp$} (Gamma);
+		
+	\end{tikzpicture}
+\end{center}
+
+\vspace{1cm}
+
 
 % === CLEANER VERSION 2: More symmetric layout ===
 
@@ -365,6 +511,7 @@ The $\omega^{1}$ $\leftrightarrow$ $\omega^{2}$ duality is the \textbf{polar/axi
 \end{itemize}
 
 The \textbf{musical isomorphisms} ($\flat$ and $\sharp$) require a metric to convert between vectors and covectors. The \textbf{Hodge star} also requires a metric and orientation.
+
 
 
 
