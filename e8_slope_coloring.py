@@ -86,7 +86,7 @@ def ulam_coords_vectorized(primes: np.ndarray) -> np.ndarray:
         elif p >= m - 3*t:
             coords[i] = [-k + (m - 2*t - p), k]
         else:
-            coords[i] = [k, k - (m - 3*t - p - t)]
+            coords[i] = [k, k - (m - 3*t - p)]
 
     return coords
 
@@ -227,7 +227,7 @@ def main():
     print("=" * 60)
 
     # Generate 1 million primes at 1200 DPI
-    generate_slope_visualization(max_primes=1000000, dpi=1200, figsize=(24, 24))
+    generate_slope_visualization(max_primes=10000, dpi=1200, figsize=(24, 24))
 
     # Generate 10 million primes at 1200 DPI (reduced size for memory)
     #generate_slope_visualization(max_primes=10000000, dpi=1200, figsize=(24, 24))
