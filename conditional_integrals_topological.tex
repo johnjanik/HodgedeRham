@@ -1,0 +1,447 @@
+\section{Conditionally Convergent Integrals as Topological Invariants}\label{sec:conditional}
+
+The Hodge--de Rham framework reveals that many ``pathological'' conditionally convergent integrals are \textbf{topological invariants} in disguise. These integrals compute characteristic numbers of hidden symmetric spaces, with their conditional convergence reflecting the delicate balance required to extract topological data from infinite-dimensional function spaces.
+
+We begin with the most elementary example---the Dirichlet integral---and show how Feynman's differentiation trick is, in fact, an application of Stokes' theorem on a product manifold. This perspective generalizes to a broad class of oscillatory integrals, each revealing hidden symmetry groups whose actions explain the appearance of transcendental constants like $\pi$ and values of the Gamma function.
+
+\subsection{The Dirichlet Integral: A Case Study}
+
+\begin{proposition}[Dirichlet Integral]
+The integral
+\[
+\int_0^\infty \frac{\sin x}{x} \, dx = \frac{\pi}{2}
+\]
+converges conditionally but not absolutely.
+\end{proposition}
+
+The standard proof via Feynman's trick introduces a damping parameter $a \geq 0$:
+\[
+I(a) = \int_0^\infty e^{-ax} \frac{\sin x}{x} \, dx.
+\]
+Differentiating under the integral sign yields $\frac{dI}{da} = -\frac{1}{1+a^2}$, whence $I(a) = \frac{\pi}{2} - \arctan(a)$, and taking $a \to 0^+$ recovers the result.
+
+But \emph{why} does this work? And why does $\pi$ appear? The Hodge--de Rham perspective answers both questions.
+
+\subsubsection{The Parameter Space as a Deformation of the Complex}
+
+From the Hodge--de Rham viewpoint, the family $\{I(a)\}_{a \geq 0}$ represents a \textbf{smooth deformation of differential forms}. Define the 1-form on $M = [0,\infty)_x$:
+\[
+\omega_a = e^{-ax} \frac{\sin x}{x} \, dx \in \Omega^1(M).
+\]
+The parameter $a$ indexes a deformation of the de Rham complex, analogous to varying a connection or metric in gauge theory. The integral $I(a) = \int_M \omega_a$ is the \textbf{fiber integral} over $M$.
+
+\begin{hott_commentary}[Deformation as Path in Type Space]
+In HoTT, the family $\{\omega_a\}$ defines a \emph{path} in the type of 1-forms:
+\[
+\omega : [0,\infty) \to \Omega^1(M), \quad a \mapsto \omega_a.
+\]
+The derivative $\frac{d\omega_a}{da}$ is the \emph{tangent vector} to this path. The fact that $\frac{dI}{da}$ simplifies means the path is ``straight'' in a suitable sense---the deformation is \emph{integrable}.
+
+The limit $a \to 0$ corresponds to approaching a \emph{boundary} in the parameter space. The conditional convergence of $I(0)$ reflects that $\omega_0$ lies on this boundary, where the type $\Omega^1(M)$ degenerates (forms are no longer $L^1$). The value $\pi/2$ is a \emph{boundary invariant}---data that persists at the limit.
+\end{hott_commentary}
+
+\subsubsection{Stokes' Theorem in the Product Space}
+
+The key observation is that $\frac{\partial \omega_a}{\partial a}$ is \textbf{exact} on $M$:
+\[
+\frac{\partial \omega_a}{\partial a} = -e^{-ax} \sin x \, dx = d_x \eta_a, \quad \text{where} \quad \eta_a = \frac{e^{-ax}(a \sin x + \cos x)}{a^2 + 1}.
+\]
+Here $d_x$ denotes the exterior derivative in the $x$-direction. By Stokes' theorem,
+\[
+\frac{dI}{da} = \int_M d_x \eta_a = \eta_a \big|_{\partial M} = \eta_a(0) - \lim_{x \to \infty} \eta_a(x) = \frac{1}{a^2+1} - 0 = -\frac{1}{a^2+1}.
+\]
+The derivative reduces to \textbf{boundary evaluations}---a hallmark of topological computations.
+
+\begin{categorical_commentary}[The Total Space as a Double Complex]
+Consider the product manifold $X = M \times [0,\infty)_a$ with coordinates $(x, a)$. The exterior derivative on $X$ splits:
+\[
+d_X = d_x + d_a.
+\]
+The form $\omega_a$ can be viewed as a 1-form on $X$ with no $da$ component. Then:
+\[
+d_X \omega = d_x \omega + d_a \omega = d_x \omega + \frac{\partial \omega_a}{\partial a} \, da \wedge dx.
+\]
+If $d_x \omega = 0$ (which holds since $\omega$ is a top form on $M$ for each $a$), and $\frac{\partial \omega_a}{\partial a} = d_x \eta_a$, then:
+\[
+d_X(\omega - \eta_a \, da) = 0.
+\]
+The form $\Omega = \omega - \eta_a \, da$ is \emph{closed} on $X$. The integral $I(a)$ is the fiber integral of $\Omega$ over $M$, and by the Leray--Serre spectral sequence, such integrals are controlled by the cohomology of the base (the parameter space).
+
+This is the categorical content of Feynman's trick: we embed the problem in a \emph{double complex} where the derivative in one direction ($a$) is exact in the other direction ($x$), allowing the computation to reduce to boundaries.
+\end{categorical_commentary}
+
+\subsubsection{Transgression and the Emergence of $\pi$}
+
+Integrating $\frac{dI}{da} = -\frac{1}{1+a^2}$ from $a = 0$ to $a = \infty$:
+\[
+I(\infty) - I(0) = -\int_0^\infty \frac{da}{1+a^2} = -\frac{\pi}{2}.
+\]
+Since $I(\infty) = 0$, we obtain $I(0) = \frac{\pi}{2}$.
+
+The integral $\int_0^\infty \frac{da}{1+a^2}$ is itself a \textbf{period}. Under the substitution $a = \tan\theta$, the parameter space $[0,\infty)_a$ compactifies to $[0, \frac{\pi}{2}]_\theta$:
+\[
+\int_0^\infty \frac{da}{1+a^2} = \int_0^{\pi/2} d\theta = \frac{\pi}{2}.
+\]
+Thus $\frac{\pi}{2}$ appears as the \textbf{length of a quarter-circle}---a topological period of the angle form $d\theta$ on $S^1$.
+
+\begin{ncg_commentary}[The Spectral Interpretation]
+In noncommutative geometry, the form $\frac{da}{1+a^2}$ is the \emph{resolvent kernel} of the operator $D = -i\frac{d}{da}$:
+\[
+\frac{1}{1+a^2} = \langle \delta_0, (1 + D^2)^{-1} \delta_0 \rangle
+\]
+in a distributional sense. The integral $\int_0^\infty \frac{da}{1+a^2}$ computes a \emph{spectral invariant}---specifically, the contribution of the continuous spectrum of $D$ to its eta invariant.
+
+More precisely, if we consider the half-line $[0,\infty)$ with Dirichlet boundary conditions at $0$, the operator $D^2 = -\frac{d^2}{da^2}$ has continuous spectrum $[0,\infty)$. The integral
+\[
+\int_0^\infty \frac{da}{1+a^2} = \frac{\pi}{2}
+\]
+is the \emph{regularized trace} of $(1+D^2)^{-1}$, analogous to the heat kernel regularization in index theory.
+
+This explains the appearance of $\pi$: it is the \emph{spectral asymmetry} of the Dirac operator on the half-line, forced by the boundary condition at $a=0$.
+\end{ncg_commentary}
+
+\begin{qit_commentary}[The Dirichlet Integral as a Transition Amplitude]
+In quantum information, the Dirichlet integral has an interpretation as a \emph{transition amplitude} in a fermionic system.
+
+Consider the fermionic Fock space $\mathcal{F} = \bigoplus_k \Omega^k([0,\infty))$ with creation operator $d$ and annihilation operator $\delta$. The 1-form $\omega_a = e^{-ax} \frac{\sin x}{x} dx$ is a \emph{1-particle state} depending on a parameter $a$.
+
+The integral $I(a) = \int_M \omega_a$ computes the \emph{overlap} of $\omega_a$ with the ``boundary state'' at $x = 0$:
+\[
+I(a) = \langle \text{boundary} | \omega_a \rangle.
+\]
+As $a \to 0$, this overlap approaches the \emph{vacuum amplitude} $\pi/2$.
+
+The conditional convergence reflects the fact that the state $\omega_0 = \frac{\sin x}{x} dx$ is not normalizable in $L^2$---it lies at the edge of the Hilbert space. The value $\pi/2$ is the \emph{renormalized} amplitude, obtained by analytic continuation from the normalizable regime $a > 0$.
+
+This is analogous to the computation of S-matrix elements in QFT, where divergent integrals are regularized by analytic continuation and yield finite, physically meaningful results.
+\end{qit_commentary}
+
+\subsubsection{Summary: The Dirichlet Integral as a Topological Period}
+
+The Hodge--de Rham analysis reveals that:
+
+\begin{enumerate}
+\item The value $\frac{\pi}{2}$ is not accidental---it is a \textbf{period} of the circle $S^1$, specifically the length of a quarter-circle.
+
+\item Feynman's trick is \textbf{Stokes' theorem} in disguise, applied to the product space $M \times [0,\infty)_a$.
+
+\item The conditional convergence reflects a \textbf{boundary phenomenon}: the form $\omega_0$ lies at the boundary of the space of $L^1$ forms, where topological data becomes accessible.
+
+\item The parameter $a$ reveals a hidden \textbf{$\mathrm{U}(1)$ symmetry}: the substitution $a = \tan\theta$ exhibits the parameter space as an arc of the circle.
+\end{enumerate}
+
+\subsection{The General Framework: Families of Forms and Transgression}
+
+The Dirichlet integral exemplifies a general pattern. We now formalize this framework.
+
+\begin{definition}[Regularized Family]
+Let $M$ be a (possibly non-compact) manifold and $\omega \in \Omega^k(M)$ a differential form whose integral $\int_M \omega$ converges conditionally. A \textbf{regularized family} is a smooth map
+\[
+\omega_\bullet : [0,\infty) \to \Omega^k(M), \quad a \mapsto \omega_a
+\]
+such that:
+\begin{enumerate}
+\item $\omega_0 = \omega$ (the original form),
+\item $\int_M \omega_a$ converges absolutely for $a > 0$,
+\item $\lim_{a \to \infty} \int_M \omega_a = 0$.
+\end{enumerate}
+\end{definition}
+
+\begin{theorem}[Transgression Formula]\label{thm:transgression}
+Let $\{\omega_a\}$ be a regularized family on $M$. Suppose there exists a family of $(k-1)$-forms $\{\eta_a\}$ on $M$ such that
+\[
+\frac{\partial \omega_a}{\partial a} = d_M \eta_a.
+\]
+Then
+\[
+\int_M \omega_0 = \int_0^\infty \left( \int_{\partial M} \eta_a \right) da,
+\]
+provided the right-hand side converges.
+\end{theorem}
+
+\begin{proof}
+By assumption,
+\[
+\frac{d}{da} \int_M \omega_a = \int_M \frac{\partial \omega_a}{\partial a} = \int_M d_M \eta_a = \int_{\partial M} \eta_a
+\]
+by Stokes' theorem. Integrating from $a = 0$ to $a = \infty$:
+\[
+\int_M \omega_\infty - \int_M \omega_0 = \int_0^\infty \left( \int_{\partial M} \eta_a \right) da.
+\]
+Since $\int_M \omega_\infty = 0$ by assumption, the result follows.
+\end{proof}
+
+\begin{remark}[The Transgression Form]
+The form $\tau = \eta_a \, da$ on $\partial M \times [0,\infty)_a$ is called the \textbf{transgression form}. The integral
+\[
+\int_M \omega_0 = \int_{\partial M \times [0,\infty)} \tau
+\]
+expresses the conditionally convergent integral as a period over the ``corner'' $\partial M \times [0,\infty)$ of the total space $M \times [0,\infty)_a$.
+
+This is directly analogous to the transgression formula in Chern--Weil theory, where the difference of Chern forms for two connections is given by integrating a transgression form over the parameter interval.
+\end{remark}
+
+\begin{hott_commentary}[Transgression as Path Lifting]
+In HoTT, Theorem~\ref{thm:transgression} has a natural interpretation via \emph{path lifting}.
+
+Consider the fibration $\pi: \Omega^k(M) \to \mathbb{R}$ given by $\pi(\omega) = \int_M \omega$ (when defined). The family $\{\omega_a\}$ is a path in $\Omega^k(M)$, and $I(a) = \pi(\omega_a)$ is its projection to $\mathbb{R}$.
+
+The condition $\frac{\partial \omega_a}{\partial a} = d_M \eta_a$ states that the path $\omega_\bullet$ is \emph{horizontal} with respect to the connection defined by $d_M$. The transgression formula then says: the total change in $I(a)$ along the path equals the \emph{holonomy} of the connection around the boundary.
+
+The value $I(0) = \frac{\pi}{2}$ is thus the holonomy of a flat connection---a topological invariant determined by the boundary conditions, not by the details of the path.
+\end{hott_commentary}
+
+\subsection{The Bessel Integral Family: Hidden $\mathrm{SO}(n)$ Actions}
+
+We now apply the framework to a family of integrals that reveal rotational symmetries in arbitrary dimensions.
+
+\begin{proposition}[Bessel Integrals]
+For $n \geq 2$, the integral
+\[
+I_n = \int_0^\infty \rho^{n/2} J_{n/2-1}(\rho) \, d\rho
+\]
+converges conditionally and equals
+\[
+I_n = 2^{n/2-1} \Gamma\left(\frac{n}{2}\right).
+\]
+\end{proposition}
+
+These integrals arise naturally from Fourier analysis on $\mathbb{R}^n$. Let $\chi_{B_n}$ be the characteristic function of the unit ball. Its Fourier transform is
+\[
+\widehat{\chi}_{B_n}(\xi) = \frac{(2\pi)^{n/2}}{|\xi|^{n/2}} J_{n/2}(|\xi|).
+\]
+By Fourier inversion at the origin,
+\[
+\chi_{B_n}(0) = 1 = (2\pi)^{-n} \int_{\mathbb{R}^n} \widehat{\chi}_{B_n}(\xi) \, d\xi.
+\]
+Converting to polar coordinates yields the Bessel integrals (up to constants).
+
+\subsubsection{The Topological Content}
+
+The Gamma function values $\Gamma(n/2)$ encode \textbf{volumes of spheres}:
+\[
+\mathrm{Vol}(S^{n-1}) = \frac{2\pi^{n/2}}{\Gamma(n/2)}.
+\]
+Thus the Bessel integral $I_n$ computes (a multiple of) the \textbf{reciprocal of the sphere's volume}. The conditional convergence reflects the integration of an oscillatory function over a non-compact radial direction to extract data about the compact sphere.
+
+\begin{ncg_commentary}[Bessel Functions and Spectral Geometry]
+In spectral geometry, the Bessel function $J_\nu(\rho)$ is the radial part of the eigenfunction of the Laplacian on $\mathbb{R}^n$ with eigenvalue $1$:
+\[
+-\Delta (e^{i\xi \cdot x}) = |\xi|^2 e^{i\xi \cdot x}.
+\]
+Setting $|\xi| = 1$ and integrating over the sphere $S^{n-1}$ in $\xi$-space yields the spherical Bessel function.
+
+The integral $I_n$ is thus a \emph{spectral integral}---it computes the contribution of the unit sphere in frequency space to the spectral measure of $\Delta$. The conditional convergence arises because we're integrating over an unbounded radial direction while probing a compact spectral surface.
+
+From the NCG perspective, $I_n$ is related to the \emph{Dixmier trace} of the operator $(1-\Delta)^{-n/2}$, which computes the volume of the manifold via the spectral action. The appearance of $\Gamma(n/2)$ is thus inevitable: it is the normalization factor for the volume form in $n$ dimensions.
+\end{ncg_commentary}
+
+\subsubsection{The Case $n = 4$: Connection to $\mathrm{SU}(2)$}
+
+For $n = 4$, we have $\mathrm{SU}(2) \cong S^3$ (the unit quaternions), and
+\[
+I_4 = \int_0^\infty \rho^2 J_1(\rho) \, d\rho = 2\Gamma(2) = 2.
+\]
+This gives
+\[
+\mathrm{Vol}(S^3) = \mathrm{Vol}(\mathrm{SU}(2)) = \frac{2\pi^2}{I_4/2} = 2\pi^2.
+\]
+
+The quaternionic structure is revealed by the regularized family:
+\[
+I_4(a) = \int_0^\infty e^{-a\rho} \rho^2 J_1(\rho) \, d\rho = \frac{3a}{(1+a^2)^{5/2}}.
+\]
+This function satisfies the \textbf{M\"obius symmetry}
+\[
+I_4(1/a) = a^3 I_4(a),
+\]
+which corresponds to the $\mathbb{Z}_2 \subset \mathrm{SU}(2)$ action exchanging $a$ and $1/a$. The full $\mathrm{SU}(2)$ symmetry acts on the upper half-plane of complex $a$, and $I_4$ transforms as a section of a line bundle over $\mathbb{H}^2/\mathrm{SU}(2)$.
+
+\begin{qit_commentary}[Quaternionic Qubits]
+The $n = 4$ Bessel integral has a quantum information interpretation via \emph{quaternionic quantum mechanics}.
+
+A quaternionic qubit is a state in $\mathbb{H}^2$, the 2-dimensional quaternionic Hilbert space. The symmetry group is $\mathrm{Sp}(1) \times \mathrm{Sp}(1) \cong \mathrm{SU}(2) \times \mathrm{SU}(2)$, acting by left and right quaternionic multiplication.
+
+The integral $I_4$ computes the \emph{symplectic volume} of the space of quaternionic qubit states:
+\[
+I_4 = \int_{\mathbb{HP}^1} \omega_{\text{symplectic}} = \mathrm{Vol}(S^3) / (2\pi) = \pi.
+\]
+(The factor of $2\pi$ accounts for the $\mathrm{U}(1)$ phase in the complex description.)
+
+The conditional convergence reflects the fact that the quaternionic projective line $\mathbb{HP}^1 \cong S^4$ is being probed by integrating oscillatory functions over an unbounded coordinate patch. The value $I_4 = 2$ is a topological invariant of the quaternionic qubit space.
+\end{qit_commentary}
+
+\subsection{The Fresnel Integrals: Hidden $\mathbb{Z}_4$ Symmetry}
+
+The Fresnel integrals
+\[
+\int_0^\infty \cos(x^2) \, dx = \int_0^\infty \sin(x^2) \, dx = \frac{1}{2}\sqrt{\frac{\pi}{2}}
+\]
+exhibit a discrete symmetry that becomes manifest through complex regularization.
+
+\subsubsection{The $\mathbb{Z}_4$ Action via Complex Scaling}
+
+Consider the Gaussian integral with a complex parameter:
+\[
+G(\theta) = \int_0^\infty e^{-e^{i\theta} x^2} \, dx = \frac{1}{2}\sqrt{\frac{\pi}{e^{i\theta}}} = \frac{1}{2}\sqrt{\pi} \, e^{-i\theta/2}.
+\]
+As $\theta$ varies from $0$ to $2\pi$, $G(\theta)$ traces a circle in $\mathbb{C}$. The special values are:
+\begin{align*}
+G(0) &= \frac{\sqrt{\pi}}{2} & &\text{(Gaussian)} \\
+G(\pi/2) &= \frac{1}{2}\sqrt{\frac{\pi}{i}} = \frac{1-i}{2}\sqrt{\frac{\pi}{2}} & &\text{(Fresnel combination)} \\
+G(\pi) &= \frac{1}{2}\sqrt{\frac{\pi}{-1}} = \frac{i\sqrt{\pi}}{2} & &\text{(imaginary Gaussian)} \\
+G(3\pi/2) &= \frac{1+i}{2}\sqrt{\frac{\pi}{2}} & &\text{(conjugate Fresnel)}
+\end{align*}
+
+The monodromy as $\theta \to \theta + 2\pi$ is multiplication by $e^{-i\pi} = -1$. After two full rotations, we return to the original value, exhibiting a $\mathbb{Z}_4$ symmetry: four quarter-turns in $\theta$ correspond to four quadrants in the complex $G$-plane.
+
+\begin{categorical_commentary}[The Fresnel Integrals as a $\mathbb{Z}_4$-Torsor]
+The family $\{G(\theta)\}_{\theta \in [0, 2\pi)}$ defines a \emph{principal $\mathbb{Z}_4$-bundle} over the circle.
+
+More precisely, consider the map $\phi: S^1 \to \mathbb{C}^*$ given by $\phi(e^{i\theta}) = G(\theta)$. The image is a circle of radius $\frac{\sqrt{\pi}}{2}$, but the map has degree $-1/2$: as $\theta$ increases by $2\pi$, $G(\theta)$ decreases by $\pi$ in argument.
+
+This fractional degree reflects the \emph{square root} in $G(\theta) \propto e^{-i\theta/2}$. The Fresnel integrals correspond to the \emph{fixed points} of the $\mathbb{Z}_4$ action on this circle, specifically the points where $\theta = \pi/2, 3\pi/2$, giving equal real and imaginary parts.
+
+Categorically, the Fresnel integrals are the \emph{$\mathbb{Z}_4$-invariant sections} of the line bundle $\mathcal{O}(-1/2)$ over $S^1$. Their value $\frac{1}{2}\sqrt{\frac{\pi}{2}}$ is the \emph{norm} of these sections, determined by the bundle's topology.
+\end{categorical_commentary}
+
+\subsubsection{Hodge--de Rham Interpretation via Mellin Transform}
+
+The substitution $u = x^2$ transforms the Fresnel integrals:
+\[
+\int_0^\infty \sin(x^2) \, dx = \frac{1}{2} \int_0^\infty u^{-1/2} \sin u \, du.
+\]
+This is the \textbf{Mellin transform} of $\sin u$ at $s = 1/2$:
+\[
+\mathcal{M}[\sin](s) = \int_0^\infty u^{s-1} \sin u \, du = \Gamma(s) \sin\left(\frac{\pi s}{2}\right), \quad 0 < \Re(s) < 1.
+\]
+At $s = 1/2$:
+\[
+\mathcal{M}[\sin](1/2) = \Gamma(1/2) \sin(\pi/4) = \sqrt{\pi} \cdot \frac{1}{\sqrt{2}} = \sqrt{\frac{\pi}{2}}.
+\]
+
+\begin{hott_commentary}[The Mellin Transform as a Path Integral]
+In HoTT, the Mellin transform can be viewed as a \emph{dependent sum} over the multiplicative group $\mathbb{R}_{>0}$:
+\[
+\mathcal{M}[f](s) = \sum_{u : \mathbb{R}_{>0}} u^{s-1} f(u) \, du.
+\]
+The parameter $s$ indexes a family of \emph{weights} on the group, and the integral computes a weighted sum.
+
+The Gamma function $\Gamma(s)$ appears because it is the \emph{volume} of $\mathbb{R}_{>0}$ with respect to the measure $u^{s-1} du$. More precisely, $\Gamma(s) = \mathcal{M}[e^{-u}](s)$, so
+\[
+\mathcal{M}[\sin](s) = \Gamma(s) \sin(\pi s/2)
+\]
+expresses the Mellin transform of $\sin$ as a \emph{character twist} of the Gamma function.
+
+The value $s = 1/2$ is special: it corresponds to the \emph{critical line} of the Riemann zeta function, where the functional equation has maximal symmetry. The Fresnel integrals thus live at the most symmetric point of the Mellin transform, explaining why their values are so simple.
+\end{hott_commentary}
+
+\subsection{The Sinc Power Integrals: Hidden Permutation Symmetry}
+
+For $n \in \mathbb{N}$, define
+\[
+S_n = \int_0^\infty \left( \frac{\sin x}{x} \right)^n dx.
+\]
+The first few values are:
+\begin{center}
+\begin{tabular}{c|cccccc}
+$n$ & 1 & 2 & 3 & 4 & 5 & 6 \\
+\hline
+$S_n$ & $\frac{\pi}{2}$ & $\frac{\pi}{2}$ & $\frac{3\pi}{8}$ & $\frac{\pi}{3}$ & $\frac{115\pi}{384}$ & $\frac{11\pi}{40}$
+\end{tabular}
+\end{center}
+
+All values are \textbf{rational multiples of $\pi$}. This is not a coincidence---it reflects a hidden $S_n$ (symmetric group) symmetry.
+
+\subsubsection{The Convolution Structure}
+
+Since $\mathcal{F}[\mathrm{sinc}](\omega) = \pi \chi_{[-1,1]}(\omega)$, the convolution theorem gives:
+\[
+\mathcal{F}[\mathrm{sinc}^n](\omega) = \pi^n \underbrace{(\chi_{[-1,1]} * \cdots * \chi_{[-1,1]})}_{n \text{ times}}(\omega).
+\]
+The $n$-fold convolution of $\chi_{[-1,1]}$ is a piecewise polynomial supported on $[-n, n]$, symmetric under permutation of the $n$ factors.
+
+Evaluating at $\omega = 0$ and using Fourier inversion:
+\[
+S_n = \frac{1}{2} \int_{-\infty}^\infty \mathrm{sinc}^n(x) \, dx = \frac{\pi^n}{2} \cdot (\chi_{[-1,1]}^{*n})(0).
+\]
+The value $(\chi_{[-1,1]}^{*n})(0)$ is the \textbf{volume of an $n$-dimensional cross-polytope} (hyperoctahedron) intersected with a unit cube, computed via inclusion-exclusion.
+
+\begin{proposition}
+For $n \geq 1$,
+\[
+S_n = \frac{\pi}{2^n (n-1)!} \sum_{k=0}^{\lfloor n/2 \rfloor} (-1)^k \binom{n}{k} (n-2k)^{n-1}.
+\]
+\end{proposition}
+
+The formula involves binomial coefficients and powers---exactly the combinatorics of the symmetric group $S_n$ acting on $n$ objects.
+
+\begin{categorical_commentary}[The Sinc Integrals and Polytope Volumes]
+The $n$-fold convolution $\chi_{[-1,1]}^{*n}$ is the \emph{density function} of the sum of $n$ independent uniform random variables on $[-1, 1]$. Its value at $0$ is the probability that $X_1 + \cdots + X_n = 0$.
+
+Geometrically, this is the $(n-1)$-dimensional volume of the slice $\{(x_1, \ldots, x_n) : \sum x_i = 0, \, |x_i| \leq 1\}$. This slice is a \emph{zonotope}---a polytope tiled by parallelepipeds---whose volume is computed by the combinatorics of the symmetric group.
+
+The categorical content: the functor $\mathcal{F}: L^1(\mathbb{R}) \to C_0(\mathbb{R})$ (Fourier transform) sends convolutions to products. The sinc function is the \emph{universal element} representing the indicator function $\chi_{[-1,1]}$ under this correspondence. The integrals $S_n$ are the \emph{$n$-th power operations} in this algebra, and their values encode the representation theory of $S_n$.
+\end{categorical_commentary}
+
+\subsection{General Principle: Conditionally Convergent Integrals as Periods}
+
+The examples above suggest a unifying principle:
+
+\begin{conjecture}[Period Conjecture for Oscillatory Integrals]
+Let $f: [0,\infty) \to \mathbb{R}$ be a smooth function such that $\int_0^\infty f(x) \, dx$ converges conditionally. If the value is a ``nice'' transcendental number (a rational multiple of $\pi$, a value of $\Gamma$ at a rational argument, etc.), then the integral is a \textbf{period} of an algebraic variety in the sense of Kontsevich--Zagier.
+\end{conjecture}
+
+\begin{definition}[Period]
+A \textbf{period} is a complex number whose real and imaginary parts are values of absolutely convergent integrals of rational functions with rational coefficients, over domains in $\mathbb{R}^n$ defined by polynomial inequalities with rational coefficients.
+\end{definition}
+
+All our examples fit this definition after suitable transformations:
+\begin{itemize}
+\item $\frac{\pi}{2} = \int_0^1 \frac{dx}{\sqrt{1-x^2}}$ (arc length of quarter circle)
+\item $\Gamma(n/2)$ for integer $n$ reduces to $\sqrt{\pi}$ and factorials
+\item $\sqrt{\frac{\pi}{2}} = \frac{1}{\sqrt{2}} \cdot \sqrt{\pi}$, a product of periods
+\end{itemize}
+
+\begin{remark}[The Symmetry Principle]
+Each conditionally convergent integral $I$ comes with a regularization family $I(a)$, and this family admits a \textbf{symmetry group} $G$:
+\begin{center}
+\renewcommand{\arraystretch}{1.3}
+\begin{tabular}{c|c|c}
+\textbf{Integral} & \textbf{Value} & \textbf{Symmetry Group} \\
+\hline
+$\int_0^\infty \frac{\sin x}{x} dx$ & $\frac{\pi}{2}$ & $\mathrm{U}(1)$ \\
+$\int_0^\infty \rho^{n/2} J_{n/2-1}(\rho) d\rho$ & $2^{n/2-1}\Gamma(n/2)$ & $\mathrm{SO}(n)$ \\
+$\int_0^\infty \sin(x^2) dx$ & $\frac{1}{2}\sqrt{\frac{\pi}{2}}$ & $\mathbb{Z}_4$ \\
+$\int_0^\infty \mathrm{sinc}^n(x) dx$ & rational $\times \pi$ & $S_n$ \\
+$\int_0^\infty x^{s-1} \sin x \, dx$ & $\Gamma(s)\sin(\frac{\pi s}{2})$ & $\mathrm{SL}(2, \mathbb{R})$
+\end{tabular}
+\end{center}
+The value of the integral is an \textbf{invariant} of the $G$-action, and the conditional convergence reflects the limit to a fixed point or boundary of the $G$-space.
+\end{remark}
+
+\subsection{Conclusion: Analysis as Topology}
+
+The Hodge--de Rham perspective transforms the study of conditionally convergent integrals from a collection of tricks into a \textbf{topological theory}. The key insights are:
+
+\begin{enumerate}
+\item \textbf{Regularization is deformation}: Introducing a parameter $a$ creates a family of forms, and Feynman's trick is Stokes' theorem on the total space.
+
+\item \textbf{Values are periods}: The ``nice'' values ($\pi$, $\Gamma$-function, etc.) are periods of algebraic varieties, reflecting hidden geometric structures.
+
+\item \textbf{Conditional convergence is a boundary phenomenon}: The integrals probe the boundary of the space of integrable forms, where topological data becomes accessible.
+
+\item \textbf{Symmetry explains simplicity}: Each integral family admits a symmetry group, and the integral's value is an invariant of this group action.
+\end{enumerate}
+
+This is a miniature instance of the broader theme of this paper: the Hodge--de Rham complex is not merely a computational tool but the \textbf{grammar of mathematical physics}. Even elementary calculus, when viewed through this lens, reveals deep connections between analysis, geometry, and topology.
+
+\begin{hott_commentary}[The Transcendental Unity of Calculus]
+From the HoTT perspective, the appearance of the same transcendental numbers ($\pi$, $e$, $\Gamma$-values) across different conditionally convergent integrals is not coincidental but \emph{inevitable}.
+
+These numbers are the \emph{universal periods}---the generators of the ring of periods under addition and multiplication. Every period can be expressed in terms of them because they are the \emph{homotopy groups} of the fundamental geometric objects (circles, spheres, hyperbolic spaces).
+
+The conditionally convergent integrals are \emph{paths} in the space of functions that terminate at these universal periods. The conditional convergence is the \emph{non-triviality} of the path---it cannot be contracted to a point without passing through infinity.
+
+Thus, calculus is not a collection of unrelated techniques but a \emph{navigation system} for the space of periods. Each integral is a route, and the transcendental constants are the destinations---the fixed points of the mathematical universe.
+\end{hott_commentary}
