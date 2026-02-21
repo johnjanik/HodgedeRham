@@ -434,6 +434,509 @@ static void f4_init(F4Lattice *f4, const E8Lattice *e8)
 }
 
 /* ================================================================
+ * E7 Root System: 126 roots in R^8 (sublattice of E8)
+ *
+ * Constraint: v[0] == v[1]  (perpendicular to e_0 - e_1)
+ * Type I (62):  ±e_i±e_j with i,j>=2 → C(6,2)×4=60; plus e_0+e_1
+ *               and -(e_0+e_1) with same sign → 2
+ * Type II (64): (±½)^8 with even neg AND v[0]==v[1] → 32+32
+ * ================================================================ */
+
+#define E7_NUM_ROOTS 126
+
+typedef struct {
+    double roots[E7_NUM_ROOTS][E8_DIM];   /* E7 roots live in R^8 */
+    double norms[E7_NUM_ROOTS];
+    double characters[E7_NUM_ROOTS];
+    double jordan_traces[E7_NUM_ROOTS];   /* sum of 8 coords */
+    int    is_long[E7_NUM_ROOTS];
+    int    e8_to_e7[E8_NUM_ROOTS];        /* E8→E7 map (-1 = not mapped) */
+    int    e8_is_e7[E8_NUM_ROOTS];        /* 1 = this E8 root IS an E7 root */
+} E7Lattice;
+
+static void e7_generate_roots(E7Lattice *e7, const E8Lattice *e8)
+{
+    int idx = 0;
+
+    /* Filter E8 roots by v[0] == v[1] */
+    for (int i = 0; i < E8_NUM_ROOTS; i++) {
+        if (fabs(e8->roots[i][0] - e8->roots[i][1]) < 1e-10) {
+            memcpy(e7->roots[idx], e8->roots[i], sizeof(double) * E8_DIM);
+            idx++;
+        }
+    }
+
+    if (idx != E7_NUM_ROOTS) {
+        fprintf(stderr, "BUG: generated %d E7 roots, expected %d\n", idx, E7_NUM_ROOTS);
+        exit(1);
+    }
+}
+
+static void e7_compute_properties(E7Lattice *e7)
+{
+    for (int i = 0; i < E7_NUM_ROOTS; i++) {
+        /* Norm */
+        double n2 = 0;
+        for (int d = 0; d < E8_DIM; d++) n2 += e7->roots[i][d] * e7->roots[i][d];
+        e7->norms[i] = sqrt(n2);
+
+        /* Long vs short (all E7 roots in E8 have norm sqrt(2), but classify anyway) */
+        e7->is_long[i] = (e7->norms[i] > 1.2) ? 1 : 0;
+
+        /* Character: long=2.0, short=1.0, modulated by Weyl height */
+        double weyl_height = 0;
+        for (int d = 0; d < E8_DIM; d++) weyl_height += fabs(e7->roots[i][d]);
+        e7->characters[i] = (e7->is_long[i] ? 2.0 : 1.0) * (1.0 + 0.1 * weyl_height);
+
+        /* Jordan trace: sum of all 8 coords */
+        double trace = 0;
+        for (int d = 0; d < E8_DIM; d++) trace += e7->roots[i][d];
+        e7->jordan_traces[i] = trace;
+    }
+}
+
+/* Build E8→E7 mapping: direct membership check (E7 roots ARE E8 roots) */
+static void e7_build_e8_mapping(E7Lattice *e7, const E8Lattice *e8)
+{
+    for (int ei = 0; ei < E8_NUM_ROOTS; ei++) {
+        e7->e8_to_e7[ei] = -1;
+        e7->e8_is_e7[ei] = 0;
+
+        /* Check if this E8 root satisfies v[0]==v[1] */
+        if (fabs(e8->roots[ei][0] - e8->roots[ei][1]) < 1e-10) {
+            /* Find matching E7 root */
+            for (int ri = 0; ri < E7_NUM_ROOTS; ri++) {
+                int match = 1;
+                for (int d = 0; d < E8_DIM; d++) {
+                    if (fabs(e8->roots[ei][d] - e7->roots[ri][d]) > 1e-10) {
+                        match = 0;
+                        break;
+                    }
+                }
+                if (match) {
+                    e7->e8_to_e7[ei] = ri;
+                    e7->e8_is_e7[ei] = 1;
+                    break;
+                }
+            }
+        } else {
+            /* Not an E7 root; find nearest by cosine similarity in R^8 */
+            double e8_norm = 0;
+            for (int d = 0; d < E8_DIM; d++)
+                e8_norm += e8->roots[ei][d] * e8->roots[ei][d];
+            e8_norm = sqrt(e8_norm);
+            if (e8_norm < 0.01) continue;
+
+            int best = 0;
+            double best_sim = -1.0;
+            for (int ri = 0; ri < E7_NUM_ROOTS; ri++) {
+                double dot = 0;
+                for (int d = 0; d < E8_DIM; d++)
+                    dot += e8->roots[ei][d] * e7->roots[ri][d];
+                double sim = fabs(dot) / (e8_norm * e7->norms[ri]);
+                if (sim > best_sim) { best_sim = sim; best = ri; }
+            }
+            e7->e8_to_e7[ei] = best;
+            e7->e8_is_e7[ei] = (best_sim >= 0.7) ? 1 : 0;
+        }
+    }
+}
+
+static void e7_init(E7Lattice *e7, const E8Lattice *e8)
+{
+    e7_generate_roots(e7, e8);
+    e7_compute_properties(e7);
+    e7_build_e8_mapping(e7, e8);
+}
+
+/* ================================================================
+ * E6 Root System: 72 roots in R^8 (sublattice of E8)
+ *
+ * Constraint: v[0] == v[1] == v[2]
+ * Type I (40):  ±e_i±e_j with i,j>=3 → C(5,2)×4=40
+ * Type II (32): (±½)^8 with even neg AND v[0]==v[1]==v[2] → 16+16
+ * ================================================================ */
+
+#define E6_NUM_ROOTS 72
+
+typedef struct {
+    double roots[E6_NUM_ROOTS][E8_DIM];   /* E6 roots live in R^8 */
+    double norms[E6_NUM_ROOTS];
+    double characters[E6_NUM_ROOTS];
+    double jordan_traces[E6_NUM_ROOTS];   /* sum of 8 coords */
+    int    is_long[E6_NUM_ROOTS];
+    int    e8_to_e6[E8_NUM_ROOTS];
+    int    e8_is_e6[E8_NUM_ROOTS];
+} E6Lattice;
+
+static void e6_generate_roots(E6Lattice *e6, const E8Lattice *e8)
+{
+    int idx = 0;
+
+    /* Filter E8 roots by v[0] == v[1] == v[2] */
+    for (int i = 0; i < E8_NUM_ROOTS; i++) {
+        if (fabs(e8->roots[i][0] - e8->roots[i][1]) < 1e-10 &&
+            fabs(e8->roots[i][1] - e8->roots[i][2]) < 1e-10) {
+            memcpy(e6->roots[idx], e8->roots[i], sizeof(double) * E8_DIM);
+            idx++;
+        }
+    }
+
+    if (idx != E6_NUM_ROOTS) {
+        fprintf(stderr, "BUG: generated %d E6 roots, expected %d\n", idx, E6_NUM_ROOTS);
+        exit(1);
+    }
+}
+
+static void e6_compute_properties(E6Lattice *e6)
+{
+    for (int i = 0; i < E6_NUM_ROOTS; i++) {
+        double n2 = 0;
+        for (int d = 0; d < E8_DIM; d++) n2 += e6->roots[i][d] * e6->roots[i][d];
+        e6->norms[i] = sqrt(n2);
+
+        e6->is_long[i] = (e6->norms[i] > 1.2) ? 1 : 0;
+
+        double weyl_height = 0;
+        for (int d = 0; d < E8_DIM; d++) weyl_height += fabs(e6->roots[i][d]);
+        e6->characters[i] = (e6->is_long[i] ? 2.0 : 1.0) * (1.0 + 0.1 * weyl_height);
+
+        double trace = 0;
+        for (int d = 0; d < E8_DIM; d++) trace += e6->roots[i][d];
+        e6->jordan_traces[i] = trace;
+    }
+}
+
+static void e6_build_e8_mapping(E6Lattice *e6, const E8Lattice *e8)
+{
+    for (int ei = 0; ei < E8_NUM_ROOTS; ei++) {
+        e6->e8_to_e6[ei] = -1;
+        e6->e8_is_e6[ei] = 0;
+
+        if (fabs(e8->roots[ei][0] - e8->roots[ei][1]) < 1e-10 &&
+            fabs(e8->roots[ei][1] - e8->roots[ei][2]) < 1e-10) {
+            for (int ri = 0; ri < E6_NUM_ROOTS; ri++) {
+                int match = 1;
+                for (int d = 0; d < E8_DIM; d++) {
+                    if (fabs(e8->roots[ei][d] - e6->roots[ri][d]) > 1e-10) {
+                        match = 0; break;
+                    }
+                }
+                if (match) {
+                    e6->e8_to_e6[ei] = ri;
+                    e6->e8_is_e6[ei] = 1;
+                    break;
+                }
+            }
+        } else {
+            double e8_norm = 0;
+            for (int d = 0; d < E8_DIM; d++)
+                e8_norm += e8->roots[ei][d] * e8->roots[ei][d];
+            e8_norm = sqrt(e8_norm);
+            if (e8_norm < 0.01) continue;
+
+            int best = 0;
+            double best_sim = -1.0;
+            for (int ri = 0; ri < E6_NUM_ROOTS; ri++) {
+                double dot = 0;
+                for (int d = 0; d < E8_DIM; d++)
+                    dot += e8->roots[ei][d] * e6->roots[ri][d];
+                double sim = fabs(dot) / (e8_norm * e6->norms[ri]);
+                if (sim > best_sim) { best_sim = sim; best = ri; }
+            }
+            e6->e8_to_e6[ei] = best;
+            e6->e8_is_e6[ei] = (best_sim >= 0.7) ? 1 : 0;
+        }
+    }
+}
+
+static void e6_init(E6Lattice *e6, const E8Lattice *e8)
+{
+    e6_generate_roots(e6, e8);
+    e6_compute_properties(e6);
+    e6_build_e8_mapping(e6, e8);
+}
+
+/* ================================================================
+ * G2 Root System: 12 roots in R^2
+ *
+ * Short (6, norm 1): angles 0°, 60°, 120°, 180°, 240°, 300°
+ * Long (6, norm √3): angles 30°, 90°, 150°, 210°, 270°, 330°
+ *
+ * E8→G2 mapping: project E8 to first 2 coords, cosine sim in R^2
+ * ================================================================ */
+
+#define G2_NUM_ROOTS 12
+#define G2_DIM 2
+
+typedef struct {
+    double roots[G2_NUM_ROOTS][G2_DIM];
+    double norms[G2_NUM_ROOTS];
+    double characters[G2_NUM_ROOTS];
+    double jordan_traces[G2_NUM_ROOTS];   /* sum of 2 coords */
+    int    is_long[G2_NUM_ROOTS];
+    int    e8_to_g2[E8_NUM_ROOTS];
+    int    e8_is_g2[E8_NUM_ROOTS];
+} G2Lattice;
+
+static void g2_generate_roots(G2Lattice *g2)
+{
+    int idx = 0;
+
+    /* Short roots (6, norm 1): angles 0°, 60°, 120°, 180°, 240°, 300° */
+    for (int k = 0; k < 6; k++) {
+        double angle = k * M_PI / 3.0;
+        g2->roots[idx][0] = cos(angle);
+        g2->roots[idx][1] = sin(angle);
+        g2->is_long[idx] = 0;
+        idx++;
+    }
+
+    /* Long roots (6, norm √3): angles 30°, 90°, 150°, 210°, 270°, 330° */
+    for (int k = 0; k < 6; k++) {
+        double angle = (k * 60.0 + 30.0) * M_PI / 180.0;
+        g2->roots[idx][0] = sqrt(3.0) * cos(angle);
+        g2->roots[idx][1] = sqrt(3.0) * sin(angle);
+        g2->is_long[idx] = 1;
+        idx++;
+    }
+
+    if (idx != G2_NUM_ROOTS) {
+        fprintf(stderr, "BUG: generated %d G2 roots, expected %d\n", idx, G2_NUM_ROOTS);
+        exit(1);
+    }
+}
+
+static void g2_compute_properties(G2Lattice *g2)
+{
+    for (int i = 0; i < G2_NUM_ROOTS; i++) {
+        double n2 = g2->roots[i][0] * g2->roots[i][0]
+                   + g2->roots[i][1] * g2->roots[i][1];
+        g2->norms[i] = sqrt(n2);
+
+        double weyl_height = fabs(g2->roots[i][0]) + fabs(g2->roots[i][1]);
+        g2->characters[i] = (g2->is_long[i] ? 2.0 : 1.0) * (1.0 + 0.1 * weyl_height);
+
+        g2->jordan_traces[i] = g2->roots[i][0] + g2->roots[i][1];
+    }
+}
+
+/* E8→G2 mapping: project E8 to first 2 coords, cosine sim in R^2 */
+static void g2_build_e8_mapping(G2Lattice *g2, const E8Lattice *e8)
+{
+    /* Precompute normalized G2 roots */
+    double g2_norm_roots[G2_NUM_ROOTS][G2_DIM];
+    for (int i = 0; i < G2_NUM_ROOTS; i++) {
+        double n = g2->norms[i];
+        if (n < 0.01) n = 1.0;
+        for (int d = 0; d < G2_DIM; d++) g2_norm_roots[i][d] = g2->roots[i][d] / n;
+    }
+
+    for (int ei = 0; ei < E8_NUM_ROOTS; ei++) {
+        /* Project E8 root to first 2 coords */
+        double proj[G2_DIM];
+        proj[0] = e8->roots[ei][0];
+        proj[1] = e8->roots[ei][1];
+        double proj_norm = sqrt(proj[0] * proj[0] + proj[1] * proj[1]);
+
+        if (proj_norm < 0.01) {
+            g2->e8_to_g2[ei] = -1;
+            g2->e8_is_g2[ei] = 0;
+            continue;
+        }
+
+        double proj_n[G2_DIM];
+        proj_n[0] = proj[0] / proj_norm;
+        proj_n[1] = proj[1] / proj_norm;
+
+        int best = 0;
+        double best_sim = -1.0;
+        for (int gi = 0; gi < G2_NUM_ROOTS; gi++) {
+            double dot = proj_n[0] * g2_norm_roots[gi][0]
+                       + proj_n[1] * g2_norm_roots[gi][1];
+            double absdot = fabs(dot);
+            if (absdot > best_sim) { best_sim = absdot; best = gi; }
+        }
+
+        g2->e8_to_g2[ei] = best;
+        g2->e8_is_g2[ei] = (best_sim >= 0.7) ? 1 : 0;
+    }
+}
+
+static void g2_init(G2Lattice *g2, const E8Lattice *e8)
+{
+    g2_generate_roots(g2);
+    g2_compute_properties(g2);
+    g2_build_e8_mapping(g2, e8);
+}
+
+/* ================================================================
+ * S(16) Half-Spinor Lattice: 128 roots in R^8 (Type II E8 roots)
+ *
+ * The 128 half-spinor weights of Spin(16): (±½)^8 with even # of
+ * minus signs.  These are exactly the Type II E8 roots, forming
+ * the vertices of the 8-dimensional demihypercube.
+ *
+ * 240 = 112 (D8 vector: ±e_i ± e_j) + 128 (half-spinor: (±½)^8)
+ * ================================================================ */
+
+#define S16_NUM_ROOTS 128
+
+typedef struct {
+    double roots[S16_NUM_ROOTS][E8_DIM];   /* S16 roots in R^8 */
+    double norms[S16_NUM_ROOTS];
+    double characters[S16_NUM_ROOTS];
+    double jordan_traces[S16_NUM_ROOTS];   /* trace-8: sum of 8 coords */
+    int    sign_parity[S16_NUM_ROOTS];     /* # of negative coords (always even) */
+    int    e8_to_s16[E8_NUM_ROOTS];        /* E8 root idx → S16 root idx (-1 = none) */
+    int    e8_is_s16[E8_NUM_ROOTS];        /* 1 if E8 root is exact S16 member */
+} S16Lattice;
+
+static void s16_generate_roots(S16Lattice *s16)
+{
+    int idx = 0;
+    /* Enumerate all 2^8 = 256 sign patterns; keep those with even # of minus */
+    for (int mask = 0; mask < 256; mask++) {
+        int neg_count = 0;
+        double v[E8_DIM];
+        for (int d = 0; d < 8; d++) {
+            if ((mask >> d) & 1) {
+                v[d] = 0.5;
+            } else {
+                v[d] = -0.5;
+                neg_count++;
+            }
+        }
+        if (neg_count % 2 != 0) continue;
+        for (int d = 0; d < 8; d++)
+            s16->roots[idx][d] = v[d];
+        s16->sign_parity[idx] = neg_count;
+        idx++;
+    }
+    if (idx != S16_NUM_ROOTS) {
+        fprintf(stderr, "BUG: generated %d S16 roots, expected %d\n", idx, S16_NUM_ROOTS);
+        exit(1);
+    }
+}
+
+static void s16_compute_properties(S16Lattice *s16)
+{
+    for (int i = 0; i < S16_NUM_ROOTS; i++) {
+        double n2 = 0, trace = 0;
+        for (int d = 0; d < E8_DIM; d++) {
+            n2 += s16->roots[i][d] * s16->roots[i][d];
+            trace += s16->roots[i][d];
+        }
+        s16->norms[i] = sqrt(n2);
+        s16->jordan_traces[i] = trace;
+        /* Character: modulated by Weyl height (always 4.0 for half-int) */
+        double weyl_h = 0;
+        for (int d = 0; d < E8_DIM; d++)
+            weyl_h += fabs(s16->roots[i][d]);
+        s16->characters[i] = 2.0 * (1.0 + 0.1 * weyl_h);
+    }
+}
+
+static void s16_build_e8_mapping(S16Lattice *s16, const E8Lattice *e8)
+{
+    /* Initialize to unmapped */
+    for (int i = 0; i < E8_NUM_ROOTS; i++) {
+        s16->e8_to_s16[i] = -1;
+        s16->e8_is_s16[i] = 0;
+    }
+
+    /* Precompute normalized S16 roots */
+    double s16_norm_roots[S16_NUM_ROOTS][E8_DIM];
+    for (int i = 0; i < S16_NUM_ROOTS; i++) {
+        double n = s16->norms[i];
+        if (n < 1e-10) n = 1.0;
+        for (int d = 0; d < E8_DIM; d++)
+            s16_norm_roots[i][d] = s16->roots[i][d] / n;
+    }
+
+    for (int ei = 0; ei < E8_NUM_ROOTS; ei++) {
+        /* Check if this E8 root is a Type II root (all coords ±½) */
+        int is_half_int = 1;
+        for (int d = 0; d < E8_DIM; d++) {
+            if (fabs(fabs(e8->roots[ei][d]) - 0.5) > 1e-10) {
+                is_half_int = 0;
+                break;
+            }
+        }
+
+        if (is_half_int) {
+            /* Find exact match among S16 roots */
+            for (int si = 0; si < S16_NUM_ROOTS; si++) {
+                int match = 1;
+                for (int d = 0; d < E8_DIM; d++) {
+                    if (fabs(e8->roots[ei][d] - s16->roots[si][d]) > 1e-10) {
+                        match = 0; break;
+                    }
+                }
+                if (match) {
+                    s16->e8_to_s16[ei] = si;
+                    s16->e8_is_s16[ei] = 1;
+                    break;
+                }
+            }
+            /* If exact match found with even parity, e8_is_s16 is set.
+             * If half-int but ODD parity → it's the conjugate S⁻(16),
+             * not in our S⁺(16).  Map via cosine sim below. */
+            if (s16->e8_to_s16[ei] >= 0)
+                continue;
+        }
+
+        /* Type I root (or unmatched half-int): nearest by cosine similarity */
+        double e8n = 0;
+        for (int d = 0; d < E8_DIM; d++)
+            e8n += e8->roots[ei][d] * e8->roots[ei][d];
+        e8n = sqrt(e8n);
+        if (e8n < 0.01) continue;
+
+        double best_abs_sim = -1;
+        int best_si = 0;
+        for (int si = 0; si < S16_NUM_ROOTS; si++) {
+            double dot = 0;
+            for (int d = 0; d < E8_DIM; d++)
+                dot += (e8->roots[ei][d] / e8n) * s16_norm_roots[si][d];
+            double absim = fabs(dot);
+            if (absim > best_abs_sim) {
+                best_abs_sim = absim;
+                best_si = si;
+            }
+        }
+        s16->e8_to_s16[ei] = best_si;
+        /* e8_is_s16 stays 0 for approximate mappings */
+    }
+}
+
+static void s16_init(S16Lattice *s16, const E8Lattice *e8)
+{
+    s16_generate_roots(s16);
+    s16_compute_properties(s16);
+    s16_build_e8_mapping(s16, e8);
+}
+
+/* ================================================================
+ * Configurable color scale helper
+ *
+ * Maps a trace value in [jmin, jmax] to plasma_lut RGB.
+ * ================================================================ */
+
+static inline RGB jordan_to_color_range(double jtrace, double jmin, double jmax)
+{
+    double range = jmax - jmin;
+    if (range < 1e-10) range = 1.0;
+    double t = (jtrace - jmin) / range;
+    if (t < 0.0) t = 0.0;
+    if (t > 1.0) t = 1.0;
+    int idx = (int)(t * 255.0);
+    if (idx < 0) idx = 0;
+    if (idx > 255) idx = 255;
+    return plasma_lut[idx];
+}
+
+/* ================================================================
  * Prime File Loader
  *
  * Reads primes1.txt through primes50.txt from a directory.

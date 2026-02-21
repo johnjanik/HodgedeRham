@@ -39,6 +39,9 @@ from e8_prime_decoder import (
 )
 from e8_f4_prime_analysis import E8Lattice, E8F4PrimeAnalyzer, load_primes, ulam_coords
 from f4_lattice import F4Lattice
+from e7_lattice import E7Lattice
+from e6_lattice import E6Lattice
+from g2_lattice import G2Lattice
 from jordan_algebra import JordanTrace
 from f4_eft import F4ExceptionalFourierTransform
 
@@ -414,6 +417,203 @@ def method_jordan_trace_bits(primes: np.ndarray, e8: E8Lattice,
         f"2 bits per F4 gap: sign + magnitude threshold at 1.0 ({len(bits)//2} gaps)")]
 
 
+def method_e7_root_index(primes: np.ndarray, e8: E8Lattice,
+                         e7: E7Lattice) -> List[MethodResult]:
+    """Group 6a: E7 root index for E7-mapped gaps."""
+    gaps = np.diff(primes.astype(np.float64))
+    log_p = np.log(primes[:-1].astype(np.float64))
+    log_p[log_p < 1] = 1
+    norm_gaps = gaps / log_p
+
+    e7_indices = []
+    for g in norm_gaps:
+        e8_idx = e8.assign_root(g)
+        if e7.is_e7_root(e8_idx):
+            e7_idx = e7.project_e8_to_e7(e8_idx)
+            if e7_idx is not None:
+                e7_indices.append(e7_idx)
+
+    if not e7_indices:
+        return []
+
+    data = bytearray(len(e7_indices))
+    for i, idx in enumerate(e7_indices):
+        data[i] = idx % 256
+
+    results = [MethodResult("E7 root index (E7 gaps only)", bytes(data),
+        f"E7 root index (0-125) for {len(e7_indices)} E7-mapped gaps")]
+
+    data_letters = bytearray(len(e7_indices))
+    for i, idx in enumerate(e7_indices):
+        data_letters[i] = 65 + (idx % 26)
+    results.append(MethodResult("E7 root index mod 26 as letter", bytes(data_letters),
+        "E7 root index mod 26 mapped to A-Z"))
+
+    return results
+
+
+def method_e7_trace_bits(primes: np.ndarray, e8: E8Lattice,
+                         e7: E7Lattice) -> List[MethodResult]:
+    """Group 6b: E7 trace-8 classification as bits."""
+    gaps = np.diff(primes.astype(np.float64))
+    log_p = np.log(primes[:-1].astype(np.float64))
+    log_p[log_p < 1] = 1
+    norm_gaps = gaps / log_p
+
+    bits = []
+    for g in norm_gaps:
+        e8_idx = e8.assign_root(g)
+        if not e7.is_e7_root(e8_idx):
+            continue
+        e7_idx = e7.project_e8_to_e7(e8_idx)
+        if e7_idx is None:
+            continue
+        trace = e7.jordan_trace(e7_idx)
+
+        # 2 bits: sign + magnitude threshold at 2.0
+        bits.append(1 if trace > 0 else 0)
+        bits.append(1 if abs(trace) > 2.0 else 0)
+
+    if not bits:
+        return []
+
+    bits_arr = np.array(bits, dtype=np.uint8)
+    data = bits_to_bytes(bits_arr)
+    return [MethodResult("E7 trace-8 classification bits", data,
+        f"2 bits per E7 gap: sign + magnitude threshold at 2.0 ({len(bits)//2} gaps)")]
+
+
+def method_e6_root_index(primes: np.ndarray, e8: E8Lattice,
+                         e6: E6Lattice) -> List[MethodResult]:
+    """Group 7a: E6 root index for E6-mapped gaps."""
+    gaps = np.diff(primes.astype(np.float64))
+    log_p = np.log(primes[:-1].astype(np.float64))
+    log_p[log_p < 1] = 1
+    norm_gaps = gaps / log_p
+
+    e6_indices = []
+    for g in norm_gaps:
+        e8_idx = e8.assign_root(g)
+        if e6.is_e6_root(e8_idx):
+            e6_idx = e6.project_e8_to_e6(e8_idx)
+            if e6_idx is not None:
+                e6_indices.append(e6_idx)
+
+    if not e6_indices:
+        return []
+
+    data = bytearray(len(e6_indices))
+    for i, idx in enumerate(e6_indices):
+        data[i] = idx % 256
+
+    results = [MethodResult("E6 root index (E6 gaps only)", bytes(data),
+        f"E6 root index (0-71) for {len(e6_indices)} E6-mapped gaps")]
+
+    data_letters = bytearray(len(e6_indices))
+    for i, idx in enumerate(e6_indices):
+        data_letters[i] = 65 + (idx % 26)
+    results.append(MethodResult("E6 root index mod 26 as letter", bytes(data_letters),
+        "E6 root index mod 26 mapped to A-Z"))
+
+    return results
+
+
+def method_e6_trace_bits(primes: np.ndarray, e8: E8Lattice,
+                         e6: E6Lattice) -> List[MethodResult]:
+    """Group 7b: E6 trace-8 classification as bits."""
+    gaps = np.diff(primes.astype(np.float64))
+    log_p = np.log(primes[:-1].astype(np.float64))
+    log_p[log_p < 1] = 1
+    norm_gaps = gaps / log_p
+
+    bits = []
+    for g in norm_gaps:
+        e8_idx = e8.assign_root(g)
+        if not e6.is_e6_root(e8_idx):
+            continue
+        e6_idx = e6.project_e8_to_e6(e8_idx)
+        if e6_idx is None:
+            continue
+        trace = e6.jordan_trace(e6_idx)
+
+        bits.append(1 if trace > 0 else 0)
+        bits.append(1 if abs(trace) > 2.0 else 0)
+
+    if not bits:
+        return []
+
+    bits_arr = np.array(bits, dtype=np.uint8)
+    data = bits_to_bytes(bits_arr)
+    return [MethodResult("E6 trace-8 classification bits", data,
+        f"2 bits per E6 gap: sign + magnitude threshold at 2.0 ({len(bits)//2} gaps)")]
+
+
+def method_g2_root_index(primes: np.ndarray, e8: E8Lattice,
+                         g2: G2Lattice) -> List[MethodResult]:
+    """Group 8a: G2 root index for G2-mapped gaps."""
+    gaps = np.diff(primes.astype(np.float64))
+    log_p = np.log(primes[:-1].astype(np.float64))
+    log_p[log_p < 1] = 1
+    norm_gaps = gaps / log_p
+
+    g2_indices = []
+    for g in norm_gaps:
+        e8_idx = e8.assign_root(g)
+        if g2.is_g2_root(e8_idx):
+            g2_idx = g2.project_e8_to_g2(e8_idx)
+            if g2_idx is not None:
+                g2_indices.append(g2_idx)
+
+    if not g2_indices:
+        return []
+
+    data = bytearray(len(g2_indices))
+    for i, idx in enumerate(g2_indices):
+        data[i] = idx % 256
+
+    results = [MethodResult("G2 root index (G2 gaps only)", bytes(data),
+        f"G2 root index (0-11) for {len(g2_indices)} G2-mapped gaps")]
+
+    data_letters = bytearray(len(g2_indices))
+    for i, idx in enumerate(g2_indices):
+        data_letters[i] = 65 + (idx % 12)  # Map to A-L (12 roots)
+    results.append(MethodResult("G2 root index as letter (A-L)", bytes(data_letters),
+        "G2 root index mapped to A-L (12 roots)"))
+
+    return results
+
+
+def method_g2_trace_bits(primes: np.ndarray, e8: E8Lattice,
+                         g2: G2Lattice) -> List[MethodResult]:
+    """Group 8b: G2 trace-2 classification as bits."""
+    gaps = np.diff(primes.astype(np.float64))
+    log_p = np.log(primes[:-1].astype(np.float64))
+    log_p[log_p < 1] = 1
+    norm_gaps = gaps / log_p
+
+    bits = []
+    for g in norm_gaps:
+        e8_idx = e8.assign_root(g)
+        if not g2.is_g2_root(e8_idx):
+            continue
+        g2_idx = g2.project_e8_to_g2(e8_idx)
+        if g2_idx is None:
+            continue
+        trace = g2.jordan_trace(g2_idx)
+
+        # 2 bits: sign + long/short root
+        bits.append(1 if trace > 0 else 0)
+        bits.append(1 if g2.is_long_root(g2_idx) else 0)
+
+    if not bits:
+        return []
+
+    bits_arr = np.array(bits, dtype=np.uint8)
+    data = bits_to_bytes(bits_arr)
+    return [MethodResult("G2 trace-2 + long/short bits", data,
+        f"2 bits per G2 gap: trace sign + long/short ({len(bits)//2} gaps)")]
+
+
 def method_crystalline_vertices(primes: np.ndarray, vertex_indices: np.ndarray,
                                 e8: E8Lattice) -> List[MethodResult]:
     """Group 5: Crystalline vertex prime properties."""
@@ -666,8 +866,56 @@ def main():
         all_results.append((method_idx, r))
         method_idx += 1
 
-    # === Group 6: First-N filters on best methods ===
-    print("\n--- Group 6: First-N Subsets ---")
+    # === Group 6: E7 Sub-harmonic ===
+    print("\n--- Group 6: E7 Sub-harmonic ---")
+
+    print("  Initializing E7 lattice...")
+    e7 = E7Lattice(e8)
+
+    print("  6a: E7 root index...")
+    for r in method_e7_root_index(primes, e8, e7):
+        all_results.append((method_idx, r))
+        method_idx += 1
+
+    print("  6b: E7 trace bits...")
+    for r in method_e7_trace_bits(primes, e8, e7):
+        all_results.append((method_idx, r))
+        method_idx += 1
+
+    # === Group 7: E6 Sub-harmonic ===
+    print("\n--- Group 7: E6 Sub-harmonic ---")
+
+    print("  Initializing E6 lattice...")
+    e6 = E6Lattice(e8)
+
+    print("  7a: E6 root index...")
+    for r in method_e6_root_index(primes, e8, e6):
+        all_results.append((method_idx, r))
+        method_idx += 1
+
+    print("  7b: E6 trace bits...")
+    for r in method_e6_trace_bits(primes, e8, e6):
+        all_results.append((method_idx, r))
+        method_idx += 1
+
+    # === Group 8: G2 Sub-harmonic ===
+    print("\n--- Group 8: G2 Sub-harmonic ---")
+
+    print("  Initializing G2 lattice...")
+    g2 = G2Lattice(e8)
+
+    print("  8a: G2 root index...")
+    for r in method_g2_root_index(primes, e8, g2):
+        all_results.append((method_idx, r))
+        method_idx += 1
+
+    print("  8b: G2 trace bits...")
+    for r in method_g2_trace_bits(primes, e8, g2):
+        all_results.append((method_idx, r))
+        method_idx += 1
+
+    # === Group 9: First-N filters on best methods ===
+    print("\n--- Group 9: First-N Subsets ---")
     # Apply first-100, first-1000 to each prior method
     for orig_idx, orig_result in list(all_results):
         for n in [100, 1000]:

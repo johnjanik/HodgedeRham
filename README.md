@@ -1,10 +1,11 @@
 # E8 Prime Structure Toolkit
 
-Tools for analyzing prime gap distributions through the lens of the E8 and F4
-exceptional root systems.  The pipeline starts from raw prime data, assigns each
-gap an E8 root via a phase map, projects through F4, computes Jordan traces and
-F4-EFT spectra, and produces high-resolution Ulam-spiral visualizations colored
-by algebraic invariants.
+Tools for analyzing prime gap distributions through the lens of the E8 root
+system and the full exceptional chain G2 < F4 < E6 < E7 < E8, plus the S(16)
+half-spinor sublattice.  The pipeline starts from raw prime data, assigns each
+gap an E8 root via a phase map, projects through all sublattices, computes
+traces and spectra, and produces high-resolution Ulam-spiral visualizations
+colored by algebraic invariants.
 
 ## Table of Contents
 
@@ -91,6 +92,7 @@ make all                  # Build everything
 make e8_slope_viz         # E8 slope visualization (requires libpng)
 make e8_f4_viz            # F4 crystalline grid with PNG output (requires libpng)
 make f4_crystalline_grid  # F4 crystalline grid, PPM output (no libpng needed)
+make exceptional_grid     # Exceptional chain: E7/E6/F4/G2/S16 (PPM, no libpng)
 make clean                # Remove all compiled binaries
 ```
 
@@ -202,6 +204,59 @@ convert f4_crystalline_grid.ppm grid.png
 9. Score and extract top-V crystalline vertices (power + idempotent boost)
 10. Render on Ulam spiral with plasma colormap (J mapped to color)
 11. Draw white vertex circles with yellow edges
+
+---
+
+#### `exceptional_grid` -- Exceptional Chain Visualization (5 separate PPMs)
+
+Renders separate Ulam spiral images for each sublattice in the exceptional chain
+(E7, E6, F4, G2) plus the S(16) half-spinor lattice.  Selectable color scales
+and a `--zoom` flag for focusing on the central region of the spiral.
+
+```bash
+# Makefile targets:
+make run-exceptional        # 2M primes, 38 vertices, 6000x6000
+make run-exceptional-small  # 10K primes, 10 vertices, 2000x2000
+
+# Direct usage:
+./exceptional_grid --max-primes 100000000 --n-vertices 38 --size 6000
+
+# Zoom to central 10% of the spiral area:
+./exceptional_grid --max-primes 100000000 --zoom 0.10 --size 1024
+
+# Convert PPM to PNG:
+for f in exceptional_grid_*.ppm; do convert "$f" "${f%.ppm}.png"; done
+```
+
+| Flag | Default | Description |
+|------|---------|-------------|
+| `--max-primes N` | 2000000 | Number of primes |
+| `--n-vertices V` | 38 | Number of crystalline vertices |
+| `--size S` | 6000 | Pixel dimensions (S x S) per image |
+| `--color-scale SCALE` | auto | `auto\|jordan\|trace8\|trace2\|norm` |
+| `--zoom FRAC` | 1.0 | Area fraction to show, e.g. 0.10 for central 10% |
+| `--output FILE` | `exceptional_grid.ppm` | Base output filename |
+| `--prime-dir DIR` | `.` | Directory containing `primesN.txt` |
+
+**Zoom guide** -- how many primes for publication quality (1024x1024, 1200 dpi):
+
+| Zoom | Min primes (1 pt/px) | Publication quality (5-10 pt/px) |
+|-----:|---------------------:|---------------------------------:|
+|  10% | 10M                  | 50M--100M                        |
+|   1% | 100M                 | 500M--1B                         |
+| 0.1% | 1B                   | 5B--10B                          |
+
+**Output:** 5 files: `exceptional_grid_{E7,E6,F4,G2,S16}.ppm`
+
+**Lattices and typical coverage at 100M primes:**
+
+| Lattice | Roots | Coverage | Color (auto) |
+|---------|------:|--------:|:-------------|
+| E7      |   126 |  59.4%  | trace8 (sum of 8 coords) |
+| E6      |    72 |  37.9%  | trace8 |
+| F4      |    48 |  82.8%  | jordan (sum of 4 coords) |
+| G2      |    12 |  68.3%  | trace2 (sum of 2 coords) |
+| S(16)   |   128 |  59.6%  | trace8 |
 
 ---
 
@@ -327,6 +382,51 @@ Imported by: `e8_f4_prime_analysis.py`, `e8_multi_decoder.py`
 
 ---
 
+#### `exceptional_analysis.py` -- Exceptional Chain Analysis (Python)
+
+Multi-lattice orchestrator for prime gap analysis through the complete
+exceptional chain G2 < F4 < E6 < E7 < E8 plus S(16).  Produces a 3x2 panel
+matplotlib visualization with per-lattice Ulam spirals and a summary panel.
+
+```bash
+# Makefile target:
+make run-exceptional-analysis  # 2M primes
+
+# Direct usage:
+python3 exceptional_analysis.py --max-primes 2000000 --color-scale auto
+```
+
+| Flag | Default | Description |
+|------|---------|-------------|
+| `--max-primes N` | 2000000 | Number of primes |
+| `--color-scale SCALE` | auto | `auto\|jordan\|trace8\|trace2\|norm` |
+| `--output FILE` | auto | Output image path |
+
+**Output:** `spiral_outputs/exceptional_chain.png`
+
+---
+
+#### `e7_lattice.py` / `e6_lattice.py` / `g2_lattice.py` / `s16_lattice.py` -- Sublattice Modules
+
+Root system modules for the exceptional chain sublattices.  Each follows the
+same class pattern as `f4_lattice.py`.
+
+| Module | Class | Roots | Dimension | Construction |
+|--------|-------|------:|----------:|:-------------|
+| `e7_lattice.py` | `E7Lattice` | 126 | R^8 | E8 roots with v₀ = v₁ |
+| `e6_lattice.py` | `E6Lattice` | 72 | R^8 | E8 roots with v₀ = v₁ = v₂ |
+| `g2_lattice.py` | `G2Lattice` | 12 | R^2 | 6 short (norm 1) + 6 long (norm √3) |
+| `s16_lattice.py` | `S16Lattice` | 128 | R^8 | Type II E8 roots: (±½)^8, even neg |
+
+Common API: `is_XX_root(e8_idx)`, `project_e8_to_XX(e8_idx)`,
+`get_projection_quality(e8_idx)`, `jordan_trace(idx)`, `root_norm(idx)`,
+`summary()`.
+
+Imported by: `exceptional_analysis.py`, `exceptional_grid.c` (via `e8_common.h`),
+`e8_multi_decoder.py`
+
+---
+
 #### `jordan_algebra.py` -- Jordan Algebra and Octonions
 
 Implements the Albert algebra (exceptional Jordan algebra J_3(O) of 3x3
@@ -439,13 +539,20 @@ sage e8_prime_decode_v2.sage
 
 ## Shared Header: `e8_common.h`
 
-Common C header used by `e8_slope_viz.c` and `e8_f4_viz.c`, providing:
+Common C header used by `e8_slope_viz.c`, `e8_f4_viz.c`, and
+`exceptional_grid.c`, providing:
 - E8 root generation (240 roots: 112 Type I + 128 Type II)
-- F4 root generation (48 roots)
+- F4 root generation (48 roots in R^4)
+- E7 root generation (126 roots in R^8, v₀ = v₁ constraint)
+- E6 root generation (72 roots in R^8, v₀ = v₁ = v₂ constraint)
+- G2 root generation (12 roots in R^2, angle formula)
+- S(16) half-spinor root generation (128 roots, Type II E8 subset)
+- E8-to-sublattice mappings (exact membership + cosine similarity)
 - Segmented prime sieve
 - Prime file loading
 - Ulam spiral coordinate computation (O(1) per prime)
 - Plasma and HSV colormaps
+- Configurable color scale helper (`jordan_to_color_range`)
 - OpenMP timing macros (`tic()` / `toc()`)
 
 Not used by `f4_crystalline_grid.c`, which is fully self-contained.
@@ -514,7 +621,24 @@ python3 e8_multi_decoder.py --max-primes 10000000
 python3 e8_f4_prime_analysis.py
 ```
 
-### 7. Publication-quality images
+### 7. Exceptional chain comparison at 100M primes
+
+```bash
+make exceptional_grid
+./exceptional_grid --max-primes 100000000 --n-vertices 38
+for f in exceptional_grid_*.ppm; do convert "$f" "${f%.ppm}.png"; done
+# Output: exceptional_grid_{E7,E6,F4,G2,S16}.png (5 images, 6000x6000)
+```
+
+### 8. Zoomed view of central 10%
+
+```bash
+./exceptional_grid --max-primes 100000000 --zoom 0.10 --size 1024 \
+    --output zoom10.ppm
+for f in zoom10_*.ppm; do convert "$f" "${f%.ppm}.png"; done
+```
+
+### 9. Publication-quality images
 
 ```bash
 # E8 slope at 100M primes (produces ~50 MB PNG)
@@ -543,6 +667,8 @@ All generated images and data go to `spiral_outputs/` (created automatically).
 | `f4_spectrum.png` | Python pipeline | F4-EFT power spectrum |
 | `f4_phase_analysis.png` | Python pipeline | Phase distribution |
 | `statistics.txt` | Python pipeline | Coverage and gap statistics |
+| `exceptional_chain.png` | `exceptional_analysis.py` | 3x2 panel: E7/E6/F4/G2/S16 + summary |
+| `exceptional_grid_{E7,E6,F4,G2,S16}.ppm` | `exceptional_grid` | Per-lattice Ulam spirals |
 | `decoder_results.txt` | `e8_multi_decoder.py` | All 53 decoder methods ranked |
 | `decoded_bits.bin` | `e8_prime_decoder.py` | Raw extracted bits |
 | `decoding_errors.npy` | `e8_prime_decoder.py` | Per-block CVP errors |
@@ -570,6 +696,23 @@ A phase is computed and mapped to one of 240 roots:
 phase = (sqrt(max(g_norm, 0.01)) / sqrt(2)) mod 1
 root_index = floor(240 * phase) mod 240
 ```
+
+### Exceptional Chain: G2 < F4 < E6 < E7 < E8
+
+The 240 E8 roots decompose into sublattices corresponding to the exceptional
+Lie group chain.  Each sublattice filters prime gaps by algebraic structure.
+
+| Lattice | Roots | Constraint | Typical coverage |
+|---------|------:|:-----------|:-----------------|
+| E8      |   240 | (full)     | 100%             |
+| E7      |   126 | v₀ = v₁    | ~59%             |
+| E6      |    72 | v₀ = v₁ = v₂ | ~38%          |
+| F4      |    48 | 4D projection | ~83%           |
+| G2      |    12 | 2D projection | ~68%           |
+| S(16)   |   128 | Type II (half-int) | ~60%      |
+
+S(16) is the half-spinor representation of Spin(16), complementary to the
+exceptional chain: the 240 E8 roots = 112 D8 vector roots + 128 S⁺(16).
 
 ### F4 Root System (48 roots in R^4)
 
