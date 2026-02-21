@@ -1,14 +1,12 @@
 /*
- * exceptional_grid.c — 5-Panel Exceptional Chain Visualization (PPM output)
+ * exceptional_grid.c — 7-Panel Exceptional Chain Visualization (PPM output)
  *
- * Renders separate images for E7, E6, F4, G2, and S(16) filtered prime gaps
- * on Ulam spirals with selectable color scales.
- *
- * Panels: E7 (126 roots), E6 (72 roots), F4 (48 roots), G2 (12 roots),
- *         S16 (128 half-spinor roots)
+ * Renders separate images for all exceptional Lie groups plus SO(16):
+ *   E8 (240 roots), E7 (126), E6 (72), F4 (48), G2 (12),
+ *   S16 (128 half-spinor), SO16 (112 D8 vector roots)
  *
  * Color scales:
- *   auto    — trace8 for E7/E6/S16, jordan for F4, trace2 for G2 (default)
+ *   auto    — trace8 for E8/E7/E6/S16/SO16, jordan for F4, trace2 for G2 (default)
  *   jordan  — sum of first 4 coords, range [-2,+2]
  *   trace8  — sum of 8 coords, range [-4,+4]
  *   trace2  — sum of 2 coords, range [-2.5,+2.5]
@@ -183,6 +181,41 @@ static double panel_trace_s16(const S16Lattice *s16, int root_idx, ColorScale sc
     return s16->jordan_traces[root_idx];
 }
 
+static double panel_trace_e8(const E8Lattice *e8, int root_idx, ColorScale scale)
+{
+    double trace8 = 0;
+    for (int d = 0; d < E8_DIM; d++)
+        trace8 += e8->roots[root_idx][d];
+    if (scale == SCALE_AUTO || scale == SCALE_TRACE8)
+        return trace8;
+    if (scale == SCALE_JORDAN)
+        return e8->roots[root_idx][0] + e8->roots[root_idx][1]
+             + e8->roots[root_idx][2] + e8->roots[root_idx][3];
+    if (scale == SCALE_TRACE2)
+        return e8->roots[root_idx][0] + e8->roots[root_idx][1];
+    if (scale == SCALE_NORM) {
+        double n2 = 0;
+        for (int d = 0; d < E8_DIM; d++)
+            n2 += e8->roots[root_idx][d] * e8->roots[root_idx][d];
+        return sqrt(n2);
+    }
+    return trace8;
+}
+
+static double panel_trace_d8(const D8Lattice *d8, int root_idx, ColorScale scale)
+{
+    if (scale == SCALE_AUTO || scale == SCALE_TRACE8)
+        return d8->jordan_traces[root_idx];
+    if (scale == SCALE_JORDAN)
+        return d8->roots[root_idx][0] + d8->roots[root_idx][1]
+             + d8->roots[root_idx][2] + d8->roots[root_idx][3];
+    if (scale == SCALE_TRACE2)
+        return d8->roots[root_idx][0] + d8->roots[root_idx][1];
+    if (scale == SCALE_NORM)
+        return d8->norms[root_idx];
+    return d8->jordan_traces[root_idx];
+}
+
 /* Color range for each panel under each scale */
 static void panel_color_range(const char *panel, ColorScale scale,
                               double *jmin, double *jmax)
@@ -197,7 +230,8 @@ static void panel_color_range(const char *panel, ColorScale scale,
         *jmin = 1.0; *jmax = 1.8;
     } else {
         /* SCALE_AUTO: use natural range per panel */
-        if (!strcmp(panel, "E7") || !strcmp(panel, "E6") || !strcmp(panel, "S16")) {
+        if (!strcmp(panel, "E8") || !strcmp(panel, "E7") || !strcmp(panel, "E6")
+            || !strcmp(panel, "S16") || !strcmp(panel, "SO16")) {
             *jmin = -4.0; *jmax = 4.0;  /* trace8 */
         } else if (!strcmp(panel, "F4")) {
             *jmin = -2.0; *jmax = 2.0;  /* jordan */
@@ -475,7 +509,7 @@ int main(int argc, char **argv)
     printf("Exceptional Chain Grid Visualization (C/OpenMP)\n");
     printf("==================================================\n");
     printf("Max primes : %s\n", fmt_comma(cfg.max_primes, buf1, sizeof(buf1)));
-    printf("Image      : %d x %d px (5 separate files)\n",
+    printf("Image      : %d x %d px (7 separate files)\n",
            cfg.img_size, cfg.img_size);
     printf("Color scale: %s\n", scale_name(cfg.color_scale));
     if (cfg.zoom < 1.0)
@@ -496,7 +530,7 @@ int main(int argc, char **argv)
     int64_t n_gaps = n_primes - 1;
 
     /* ---- Step 2: Initialize all lattices ---- */
-    printf("Initializing E8 + E7 + E6 + F4 + G2 + S16...\n");
+    printf("Initializing E8 + E7 + E6 + F4 + G2 + S16 + SO16(D8)...\n");
     tic();
     E8Lattice  e8;   e8_init(&e8);
     E7Lattice  e7;   e7_init(&e7, &e8);
@@ -504,19 +538,21 @@ int main(int argc, char **argv)
     F4Lattice  f4;   f4_init(&f4, &e8);
     G2Lattice  g2;   g2_init(&g2, &e8);
     S16Lattice s16;  s16_init(&s16, &e8);
+    D8Lattice  d8;   d8_init(&d8, &e8);
     printf("  Done in %.2fs\n", toc());
 
     /* Count E8→sublattice mappings */
-    int n_e7 = 0, n_e6 = 0, n_f4 = 0, n_g2 = 0, n_s16 = 0;
+    int n_e7 = 0, n_e6 = 0, n_f4 = 0, n_g2 = 0, n_s16 = 0, n_d8 = 0;
     for (int i = 0; i < E8_NUM_ROOTS; i++) {
         if (e7.e8_is_e7[i]) n_e7++;
         if (e6.e8_is_e6[i]) n_e6++;
         if (f4.e8_is_f4[i]) n_f4++;
         if (g2.e8_is_g2[i]) n_g2++;
         if (s16.e8_is_s16[i]) n_s16++;
+        if (d8.e8_is_d8[i]) n_d8++;
     }
-    printf("  E8→E7: %d/240, E8→E6: %d/240, E8→F4: %d/240, E8→G2: %d/240, E8→S16: %d/240\n",
-           n_e7, n_e6, n_f4, n_g2, n_s16);
+    printf("  E8→E7: %d/240, E8→E6: %d/240, E8→F4: %d/240\n", n_e7, n_e6, n_f4);
+    printf("  E8→G2: %d/240, E8→S16: %d/240, E8→SO16(D8): %d/240\n", n_g2, n_s16, n_d8);
 
     /* ---- Step 3: E8 assignments + per-lattice filtering ---- */
     printf("Computing E8 assignments + lattice filtering...\n");
@@ -526,21 +562,25 @@ int main(int argc, char **argv)
     double *norm_gaps    = (double *)malloc(n_gaps * sizeof(double));
 
     /* Per-panel data */
+    int *is_e8     = (int *)calloc(n_gaps, sizeof(int));
     int *is_e7     = (int *)calloc(n_gaps, sizeof(int));
     int *is_e6     = (int *)calloc(n_gaps, sizeof(int));
     int *is_f4     = (int *)calloc(n_gaps, sizeof(int));
     int *is_g2     = (int *)calloc(n_gaps, sizeof(int));
     int *is_s16    = (int *)calloc(n_gaps, sizeof(int));
+    int *is_d8     = (int *)calloc(n_gaps, sizeof(int));
+    double *tv_e8  = (double *)malloc(n_gaps * sizeof(double));
     double *tv_e7  = (double *)malloc(n_gaps * sizeof(double));
     double *tv_e6  = (double *)malloc(n_gaps * sizeof(double));
     double *tv_f4  = (double *)malloc(n_gaps * sizeof(double));
     double *tv_g2  = (double *)malloc(n_gaps * sizeof(double));
     double *tv_s16 = (double *)malloc(n_gaps * sizeof(double));
+    double *tv_d8  = (double *)malloc(n_gaps * sizeof(double));
 
-    int64_t cnt_e7 = 0, cnt_e6 = 0, cnt_f4 = 0, cnt_g2 = 0, cnt_s16 = 0;
+    int64_t cnt_e8 = 0, cnt_e7 = 0, cnt_e6 = 0, cnt_f4 = 0, cnt_g2 = 0, cnt_s16 = 0, cnt_d8 = 0;
 
     #pragma omp parallel for schedule(static) \
-        reduction(+:cnt_e7,cnt_e6,cnt_f4,cnt_g2,cnt_s16)
+        reduction(+:cnt_e8,cnt_e7,cnt_e6,cnt_f4,cnt_g2,cnt_s16,cnt_d8)
     for (int64_t i = 0; i < n_gaps; i++) {
         double gap = (double)(primes[i+1] - primes[i]);
         double log_p = log((double)primes[i]);
@@ -551,7 +591,11 @@ int main(int argc, char **argv)
         int ei = e8_assignments[i];
 
         /* NaN sentinel */
-        tv_e7[i] = tv_e6[i] = tv_f4[i] = tv_g2[i] = tv_s16[i] = 0.0 / 0.0;
+        tv_e8[i] = tv_e7[i] = tv_e6[i] = tv_f4[i] = tv_g2[i] = tv_s16[i] = tv_d8[i] = 0.0 / 0.0;
+
+        /* E8: every gap maps to an E8 root (100% coverage) */
+        is_e8[i] = 1; cnt_e8++;
+        tv_e8[i] = panel_trace_e8(&e8, ei, cfg.color_scale);
 
         if (e7.e8_is_e7[ei] && e7.e8_to_e7[ei] >= 0) {
             is_e7[i] = 1; cnt_e7++;
@@ -573,18 +617,25 @@ int main(int argc, char **argv)
             is_s16[i] = 1; cnt_s16++;
             tv_s16[i] = panel_trace_s16(&s16, s16.e8_to_s16[ei], cfg.color_scale);
         }
+        if (d8.e8_is_d8[ei] && d8.e8_to_d8[ei] >= 0) {
+            is_d8[i] = 1; cnt_d8++;
+            tv_d8[i] = panel_trace_d8(&d8, d8.e8_to_d8[ei], cfg.color_scale);
+        }
     }
     printf("  Done in %.2fs\n", toc());
     {
         char b1[32], b2[32];
-        printf("  E7: %s (%.1f%%), E6: %s (%.1f%%)\n",
-               fmt_comma(cnt_e7, b1, sizeof(b1)), 100.0*cnt_e7/n_gaps,
-               fmt_comma(cnt_e6, b2, sizeof(b2)), 100.0*cnt_e6/n_gaps);
-        printf("  F4: %s (%.1f%%), G2: %s (%.1f%%)\n",
-               fmt_comma(cnt_f4, b1, sizeof(b1)), 100.0*cnt_f4/n_gaps,
-               fmt_comma(cnt_g2, b2, sizeof(b2)), 100.0*cnt_g2/n_gaps);
-        printf("  S16: %s (%.1f%%)\n",
-               fmt_comma(cnt_s16, b1, sizeof(b1)), 100.0*cnt_s16/n_gaps);
+        printf("  E8: %s (%.1f%%), E7: %s (%.1f%%)\n",
+               fmt_comma(cnt_e8, b1, sizeof(b1)), 100.0*cnt_e8/n_gaps,
+               fmt_comma(cnt_e7, b2, sizeof(b2)), 100.0*cnt_e7/n_gaps);
+        printf("  E6: %s (%.1f%%), F4: %s (%.1f%%)\n",
+               fmt_comma(cnt_e6, b1, sizeof(b1)), 100.0*cnt_e6/n_gaps,
+               fmt_comma(cnt_f4, b2, sizeof(b2)), 100.0*cnt_f4/n_gaps);
+        printf("  G2: %s (%.1f%%), S16: %s (%.1f%%)\n",
+               fmt_comma(cnt_g2, b1, sizeof(b1)), 100.0*cnt_g2/n_gaps,
+               fmt_comma(cnt_s16, b2, sizeof(b2)), 100.0*cnt_s16/n_gaps);
+        printf("  SO16(D8): %s (%.1f%%)\n",
+               fmt_comma(cnt_d8, b1, sizeof(b1)), 100.0*cnt_d8/n_gaps);
     }
 
     /* ---- Step 4: Simple vertex scoring (F4 EFT based) ---- */
@@ -638,24 +689,26 @@ int main(int argc, char **argv)
         ulam_coord(primes[i], &ux[i], &uy[i]);
     printf("  Done in %.2fs\n", toc());
 
-    /* ---- Step 6: Render 5 separate images ---- */
+    /* ---- Step 6: Render 7 separate images ---- */
     struct {
         const char *name;
         int *is_member;
         double *trace_values;
         int64_t n_mapped;
-    } panels[5] = {
-        {"E7",  is_e7,  tv_e7,  cnt_e7},
-        {"E6",  is_e6,  tv_e6,  cnt_e6},
-        {"F4",  is_f4,  tv_f4,  cnt_f4},
-        {"G2",  is_g2,  tv_g2,  cnt_g2},
-        {"S16", is_s16, tv_s16, cnt_s16},
+    } panels[7] = {
+        {"E8",   is_e8,  tv_e8,  cnt_e8},
+        {"E7",   is_e7,  tv_e7,  cnt_e7},
+        {"E6",   is_e6,  tv_e6,  cnt_e6},
+        {"F4",   is_f4,  tv_f4,  cnt_f4},
+        {"G2",   is_g2,  tv_g2,  cnt_g2},
+        {"S16",  is_s16, tv_s16, cnt_s16},
+        {"SO16", is_d8,  tv_d8,  cnt_d8},
     };
-    int root_counts[5] = {E7_NUM_ROOTS, E6_NUM_ROOTS, F4_NUM_ROOTS, G2_NUM_ROOTS, S16_NUM_ROOTS};
+    int root_counts[7] = {E8_NUM_ROOTS, E7_NUM_ROOTS, E6_NUM_ROOTS, F4_NUM_ROOTS, G2_NUM_ROOTS, S16_NUM_ROOTS, D8_NUM_ROOTS};
 
     size_t buf_size = (size_t)cfg.img_size * cfg.img_size * 3;
 
-    for (int p = 0; p < 5; p++) {
+    for (int p = 0; p < 7; p++) {
         printf("Rendering %s (%d roots, %s mapped) %dx%d...\n",
                panels[p].name, root_counts[p],
                fmt_comma(panels[p].n_mapped, buf1, sizeof(buf1)),
@@ -723,17 +776,20 @@ int main(int argc, char **argv)
 
     /* ---- Summary ---- */
     printf("\n==================================================\n");
-    printf("Exceptional Chain — 5 Separate Images\n");
+    printf("Exceptional Chain — 7 Separate Images\n");
     {
         char b1[32], b2[32];
-        printf("  E7:  %s gaps (%.1f%%), E6: %s gaps (%.1f%%)\n",
-               fmt_comma(cnt_e7, b1, sizeof(b1)), 100.0*cnt_e7/n_gaps,
-               fmt_comma(cnt_e6, b2, sizeof(b2)), 100.0*cnt_e6/n_gaps);
-        printf("  F4:  %s gaps (%.1f%%), G2: %s gaps (%.1f%%)\n",
-               fmt_comma(cnt_f4, b1, sizeof(b1)), 100.0*cnt_f4/n_gaps,
-               fmt_comma(cnt_g2, b2, sizeof(b2)), 100.0*cnt_g2/n_gaps);
-        printf("  S16: %s gaps (%.1f%%)\n",
-               fmt_comma(cnt_s16, b1, sizeof(b1)), 100.0*cnt_s16/n_gaps);
+        printf("  E8:  %s gaps (%.1f%%), E7: %s gaps (%.1f%%)\n",
+               fmt_comma(cnt_e8, b1, sizeof(b1)), 100.0*cnt_e8/n_gaps,
+               fmt_comma(cnt_e7, b2, sizeof(b2)), 100.0*cnt_e7/n_gaps);
+        printf("  E6:  %s gaps (%.1f%%), F4: %s gaps (%.1f%%)\n",
+               fmt_comma(cnt_e6, b1, sizeof(b1)), 100.0*cnt_e6/n_gaps,
+               fmt_comma(cnt_f4, b2, sizeof(b2)), 100.0*cnt_f4/n_gaps);
+        printf("  G2:  %s gaps (%.1f%%), S16: %s gaps (%.1f%%)\n",
+               fmt_comma(cnt_g2, b1, sizeof(b1)), 100.0*cnt_g2/n_gaps,
+               fmt_comma(cnt_s16, b2, sizeof(b2)), 100.0*cnt_s16/n_gaps);
+        printf("  SO16(D8): %s gaps (%.1f%%)\n",
+               fmt_comma(cnt_d8, b1, sizeof(b1)), 100.0*cnt_d8/n_gaps);
     }
     printf("  Vertices: %d\n", actual_vertices);
     printf("  Color: %s\n", scale_name(cfg.color_scale));
@@ -741,8 +797,8 @@ int main(int argc, char **argv)
 
     /* Cleanup */
     free(vertex_idx);
-    free(is_e7); free(is_e6); free(is_f4); free(is_g2); free(is_s16);
-    free(tv_e7); free(tv_e6); free(tv_f4); free(tv_g2); free(tv_s16);
+    free(is_e8); free(is_e7); free(is_e6); free(is_f4); free(is_g2); free(is_s16); free(is_d8);
+    free(tv_e8); free(tv_e7); free(tv_e6); free(tv_f4); free(tv_g2); free(tv_s16); free(tv_d8);
     free(e8_assignments); free(norm_gaps);
     free(ux); free(uy); free(primes);
 

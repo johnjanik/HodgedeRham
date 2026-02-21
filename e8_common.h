@@ -918,6 +918,107 @@ static void s16_init(S16Lattice *s16, const E8Lattice *e8)
 }
 
 /* ================================================================
+ * D8 / SO(16) Root System: 112 roots (Type I of E8)
+ *
+ * The vector roots ±e_i ± e_j (i < j) in R^8.
+ * These form the D8 root system, the root system of SO(16).
+ * ================================================================ */
+
+#define D8_NUM_ROOTS 112
+
+typedef struct {
+    double roots[D8_NUM_ROOTS][E8_DIM];
+    double norms[D8_NUM_ROOTS];
+    double characters[D8_NUM_ROOTS];
+    double jordan_traces[D8_NUM_ROOTS];   /* sum of 8 coords */
+    int    e8_to_d8[E8_NUM_ROOTS];        /* E8 root idx → D8 root idx (-1 = none) */
+    int    e8_is_d8[E8_NUM_ROOTS];        /* 1 if E8 root is exact D8 member */
+} D8Lattice;
+
+static void d8_generate_roots(D8Lattice *d8)
+{
+    int idx = 0;
+    for (int i = 0; i < 8; i++) {
+        for (int j = i + 1; j < 8; j++) {
+            for (int s1 = -1; s1 <= 1; s1 += 2) {
+                for (int s2 = -1; s2 <= 1; s2 += 2) {
+                    memset(d8->roots[idx], 0, sizeof(double) * E8_DIM);
+                    d8->roots[idx][i] = s1;
+                    d8->roots[idx][j] = s2;
+                    idx++;
+                }
+            }
+        }
+    }
+    if (idx != D8_NUM_ROOTS) {
+        fprintf(stderr, "BUG: generated %d D8 roots, expected %d\n", idx, D8_NUM_ROOTS);
+        exit(1);
+    }
+}
+
+static void d8_compute_properties(D8Lattice *d8)
+{
+    for (int i = 0; i < D8_NUM_ROOTS; i++) {
+        double n2 = 0, trace = 0;
+        for (int d = 0; d < E8_DIM; d++) {
+            n2 += d8->roots[i][d] * d8->roots[i][d];
+            trace += d8->roots[i][d];
+        }
+        d8->norms[i] = sqrt(n2);
+        d8->jordan_traces[i] = trace;
+        double weyl_h = 0;
+        for (int d = 0; d < E8_DIM; d++)
+            weyl_h += fabs(d8->roots[i][d]);
+        d8->characters[i] = 2.0 * (1.0 + 0.1 * weyl_h);
+    }
+}
+
+static void d8_build_e8_mapping(D8Lattice *d8, const E8Lattice *e8)
+{
+    for (int i = 0; i < E8_NUM_ROOTS; i++) {
+        d8->e8_to_d8[i] = -1;
+        d8->e8_is_d8[i] = 0;
+    }
+
+    for (int ei = 0; ei < E8_NUM_ROOTS; ei++) {
+        /* Check if Type I: exactly 2 nonzero coords, each ±1 */
+        int nonzero = 0;
+        int is_integer = 1;
+        for (int d = 0; d < E8_DIM; d++) {
+            double v = fabs(e8->roots[ei][d]);
+            if (v > 1e-10) {
+                nonzero++;
+                if (fabs(v - 1.0) > 1e-10) is_integer = 0;
+            }
+        }
+        if (nonzero == 2 && is_integer) {
+            /* Exact match: find the D8 root */
+            for (int di = 0; di < D8_NUM_ROOTS; di++) {
+                int match = 1;
+                for (int d = 0; d < E8_DIM; d++) {
+                    if (fabs(e8->roots[ei][d] - d8->roots[di][d]) > 1e-10) {
+                        match = 0; break;
+                    }
+                }
+                if (match) {
+                    d8->e8_to_d8[ei] = di;
+                    d8->e8_is_d8[ei] = 1;
+                    break;
+                }
+            }
+        }
+        /* Type II roots (half-integer) are NOT in D8 — leave unmapped */
+    }
+}
+
+static void d8_init(D8Lattice *d8, const E8Lattice *e8)
+{
+    d8_generate_roots(d8);
+    d8_compute_properties(d8);
+    d8_build_e8_mapping(d8, e8);
+}
+
+/* ================================================================
  * Configurable color scale helper
  *
  * Maps a trace value in [jmin, jmax] to plasma_lut RGB.
