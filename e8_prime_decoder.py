@@ -25,13 +25,13 @@ import os
 # CONFIGURATION
 # =============================================================================
 
-PRIMES_DIR = Path("/home/john/Writing/exterior_derivative/riemann_hypothesis/step3/Primes")
+PRIMES_DIR = Path("/home/john/mynotes/HodgedeRham")
 NUM_FILES = 50  # primes1.txt through primes50.txt
 BLOCK_SIZE = 8  # E8 lattice dimension
 E8_PACKING_RADIUS = 1.0 / np.sqrt(2)  # ≈ 0.7071
 
 # Output files
-OUTPUT_DIR = Path("/home/john/Writing/exterior_derivative/riemann_hypothesis")
+OUTPUT_DIR = Path("/home/john/mynotes/HodgedeRham/spiral_outputs")
 BITS_FILE = OUTPUT_DIR / "decoded_bits.bin"
 ERRORS_FILE = OUTPUT_DIR / "decoding_errors.npy"
 STATS_FILE = OUTPUT_DIR / "statistics.txt"

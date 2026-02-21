@@ -23,10 +23,10 @@ import re
 from typing import Dict, Tuple, Optional
 
 # Import F4 tuning modules
-from f4_tuning.f4_lattice import F4Lattice
-from f4_tuning.salem_jordan import SalemJordanKernel
-from f4_tuning.jordan_algebra import JordanTrace, jordan_trace_coloring
-from f4_tuning.f4_eft import F4ExceptionalFourierTransform
+from f4_lattice import F4Lattice
+from salem_jordan import SalemJordanKernel
+from jordan_algebra import JordanTrace, jordan_trace_coloring
+from f4_eft import F4ExceptionalFourierTransform
 
 
 # =============================================================================
@@ -109,7 +109,7 @@ def ulam_coords(primes: np.ndarray) -> np.ndarray:
 # Prime Loading
 # =============================================================================
 
-def load_primes(base_dir: str = "..", max_primes: int = 1000000) -> np.ndarray:
+def load_primes(base_dir: str = "/home/john/mynotes/HodgedeRham", max_primes: int = 1000000) -> np.ndarray:
     """Load primes from text files."""
     all_primes = []
     for i in range(1, 51):
@@ -532,7 +532,7 @@ def main():
     print("GENERATING VISUALIZATIONS")
     print("=" * 50)
 
-    visualizer = E8F4Visualizer("../spiral_outputs")
+    visualizer = E8F4Visualizer("/home/john/mynotes/HodgedeRham/spiral_outputs")
 
     print("\n1. E8 vs F4 comparison...")
     visualizer.plot_e8_vs_f4_comparison(data, dpi=1200)

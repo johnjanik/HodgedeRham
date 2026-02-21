@@ -71,7 +71,7 @@ def convert_to_csv(input_dir, output_file, max_primes=None):
     return len(all_primes)
 
 if __name__ == '__main__':
-    input_dir = '/home/john/Writing/exterior_derivative/riemann_hypothesis/step3/Primes'
+    input_dir = '/home/john/mynotes/HodgedeRham'
 
     if len(sys.argv) > 1:
         max_primes = int(sys.argv[1])

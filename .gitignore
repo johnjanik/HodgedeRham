@@ -1,0 +1,18 @@
+# Compiled C binaries
+e8_slope_viz
+e8_f4_viz
+e8_decoder
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+
+# Large data files
+primes*.txt
+*.npy
+*.bin
+*.ppm
+
+# Output images
+spiral_outputs/

@@ -15,7 +15,7 @@ class E8PrimeDecoder:
     Using the first 50 million primes to extract 8-bit messages
     """
     
-    def __init__(self, prime_dir="/home/john/Writing/exterior_derivative/riemann_hypothesis/step3/Primes"):
+    def __init__(self, prime_dir="/home/john/mynotes/HodgedeRham"):
         self.prime_dir = prime_dir
         self.known_mersenne_exponents = [2, 3, 5, 7, 13, 17, 19, 31, 61, 89, 107, 
                                          127, 521, 607, 1279, 2203, 2281, 3217, 
@@ -389,7 +389,7 @@ class E8PrimeDecoder:
 def main():
     """Main execution function"""
     # Initialize decoder
-    decoder = E8PrimeDecoder(prime_dir="Primes")
+    decoder = E8PrimeDecoder()
     
     # Run full experiment
     try:
@@ -423,9 +423,4 @@ def main():
 
 if __name__ == "__main__":
     # Check if prime directory exists
-    if not os.path.exists("Primes"):
-        print("Error: 'Primes' directory not found.")
-        print("Please create a 'Primes' directory with files named primes1.txt, primes2.txt, etc.")
-        print("Each file should contain 1,000,000 primes in the specified format.")
-    else:
-        main()
+    main()

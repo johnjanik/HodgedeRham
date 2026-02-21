@@ -18,9 +18,9 @@ import numpy as np
 from typing import Optional, Tuple, Dict, List
 from dataclasses import dataclass
 
-from .f4_lattice import F4Lattice
-from .salem_jordan import SalemJordanKernel
-from .jordan_algebra import JordanTrace
+from f4_lattice import F4Lattice
+from salem_jordan import SalemJordanKernel
+from jordan_algebra import JordanTrace
 
 
 @dataclass

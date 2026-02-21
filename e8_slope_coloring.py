@@ -95,7 +95,7 @@ def ulam_coords_vectorized(primes: np.ndarray) -> np.ndarray:
 # Load Primes
 # =============================================================================
 
-def load_primes(base_dir: str = "..", max_primes: int = 1000000) -> np.ndarray:
+def load_primes(base_dir: str = "/home/john/mynotes/HodgedeRham", max_primes: int = 1000000) -> np.ndarray:
     all_primes = []
     for i in range(1, 51):
         filename = Path(base_dir) / f"primes{i}.txt"
@@ -201,7 +201,7 @@ def generate_slope_visualization(max_primes: int, dpi: int = 300,
 
     # Save
     suffix = f"{max_primes // 1000000}M" if max_primes >= 1000000 else f"{max_primes // 1000}k"
-    output_path = Path(f"../spiral_outputs/e8_projection_slope_{suffix}_{dpi}dpi_dark.png")
+    output_path = Path(f"/home/john/mynotes/HodgedeRham/spiral_outputs/e8_projection_slope_{suffix}_{dpi}dpi_dark.png")
     output_path.parent.mkdir(exist_ok=True)
 
     print(f"Saving to {output_path.name}...")
